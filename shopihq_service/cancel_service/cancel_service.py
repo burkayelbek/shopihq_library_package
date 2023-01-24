@@ -16,5 +16,12 @@ class ShopihqCancelService(object):
     def get_reasons(self, request):
         path = self._get_url_with_endpoint('/Order/reasons')
         response = requests.get(url=path, params=request.query_params)
-        return response
+        if response.status_code == 200:
+            return response
+        else:
+            return False
 
+    def is_cancellable(self, order_number):
+        path = self._get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
+        response = requests.get(url=path)
+        return response
