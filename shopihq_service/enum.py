@@ -12,3 +12,10 @@ class CustomerReasonEnum(Enum):
     Other = -1
 
 
+class ShipmentProviderTypes(Enum):
+    Standard = 0
+    Express = 10
+    SameDay = 20
+    NextDay = 30
+    EndOfDay = 40
+
