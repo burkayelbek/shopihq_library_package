@@ -49,8 +49,7 @@ class ShopihqCancelService(object):
         """
         path = self._get_url_with_endpoint('/Return/isDraftReturnable')
         headers = {"Content-Type": "application/json"}
-        response = requests.post(url=path, headers=headers, data=json.dumps(request.data),
-                                 auth=('7BB5FD4A', '138BE40D'))
+        response = requests.post(url=path, headers=headers, data=json.dumps(request.data))
         return response
 
     def create_draft_return_shipment(self):
