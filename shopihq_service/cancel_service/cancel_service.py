@@ -1,6 +1,6 @@
 import requests
 from shopihq_service.settings import Settings as settings
-from shopihq_service.enum import CustomerReasonEnum
+import json
 
 
 class ShopihqCancelService(object):
