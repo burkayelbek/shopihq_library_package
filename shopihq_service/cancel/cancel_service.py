@@ -21,7 +21,8 @@ class ShopihqCancelService(object):
         # ToDo: Check the enum if user enter Other. Should write reasons in api.
         # ToDo: Has not been finished yet.
         path = get_url_with_endpoint('/Order/cancelOrder')
-        pass
+        response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
+        return response
 
     def is_draft_returnable(self, request):
         """
@@ -34,7 +35,11 @@ class ShopihqCancelService(object):
         return response
 
     def create_draft_return_shipment(self, request):
-        # ToDo: Has not been finished yet.
+        """
+        Method: POST
+        :param request:
+        :return:
+        """
         path = get_url_with_endpoint('/Return/createDraftReturnShipment')
         response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
         return response

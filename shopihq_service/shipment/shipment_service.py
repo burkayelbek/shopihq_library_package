@@ -8,7 +8,11 @@ class ShopihqShipmentService(object):
         self.headers = {"Content-Type": "application/json"}
 
     def shipment_availability(self, request):
-        # ToDo: Has not been finished yet.
+        """
+        Method: POST
+        :param request:
+        :return:
+        """
         path = get_url_with_endpoint('/Shipment/availability')
         response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
         return response
