@@ -6,13 +6,17 @@ class ShopihqOrderService(object):
     def __init__(self):
         self.headers = {"Content-Type": "application/json"}
 
-    def get_reasons(self, request, env_var):
+    def get_reasons(self, request):
         """
         Method: GET
-        :param env_var:
         :param request: Ex: ?type=0&language=1
+        : type=0 -> Cancel, type=1 -> Refund, language=0 -> Turkish, language=1 -> English
         :return:
         """
         path = get_url_with_endpoint('/Order/reasons')
-        response = requests.get(url=path, params=request.query_params, auth=env_var)
+        response = requests.get(url=path, params=request.query_params)
         return response
+
+
+    def order_search(self, request):
+        pass
