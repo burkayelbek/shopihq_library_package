@@ -17,6 +17,11 @@ class ShopihqOrderService(object):
         response = requests.get(url=path, params=request.query_params)
         return response
 
-
     def order_search(self, request):
-        pass
+        """
+        :param request:
+        :return:
+        """
+        path = get_url_with_endpoint('/Order/search')
+        response = requests.get(url=path, params=request.query_params)
+        return response
