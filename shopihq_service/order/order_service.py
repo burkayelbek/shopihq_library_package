@@ -27,7 +27,7 @@ class ShopihqOrderService(object):
             # Website language is default (Turkish)
             language = 0
         params = {'type': 0, 'language': language}
-        response = requests.get(url=path, params=params, auth=('7BB5FD4A','138BE40D'))
+        response = requests.get(url=path, params=params)
         if response.status_code != 200:
             raise Exception("Error: API returned status code {}".format(response.status_code))
         response_json = json.loads(response.content.decode())
