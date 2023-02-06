@@ -43,8 +43,9 @@ class ShopihqOrderService(object):
         for index, res in enumerate(parsed_json, start=1):
             response_data = {
                 "id": res['reasonId'],
-                "cancellation_type": "cancel" if res in response_json_cancel.get('data').get(
-                    'reasonList') else "refund",
+                "cancellation_type": "cancel" if res.get("reasonId") not in [d["id"] for d in
+                                                                             data] and res in response_json_cancel.get(
+                    'data').get('reasonList') else "refund",
                 "subject": res['reason'],
                 "extra_information_needed": True if res.get("reasonId") == -1 else None,
                 "order": index,
