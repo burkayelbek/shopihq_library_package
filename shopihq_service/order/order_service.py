@@ -5,6 +5,7 @@ import re
 from shopihq_service.utils import get_url_with_endpoint
 from shopihq_service.utils import BasicAuthUtils
 
+
 class ShopihqOrderService(object):
     auth = BasicAuthUtils()
 
