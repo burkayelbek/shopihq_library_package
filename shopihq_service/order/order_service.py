@@ -1,5 +1,4 @@
 import requests
-import uuid
 import json
 import re
 from shopihq_service.utils import get_url_with_endpoint
@@ -39,16 +38,16 @@ class ShopihqOrderService(object):
                 f"& REFUND API: {refund_response.status_code}")
         response_json_cancel = json.loads(cancel_response.content.decode())
         response_json_refund = json.loads(refund_response.content.decode())
-        parsed_json = response_json_cancel.get('data').get('reasonList') + response_json_refund.get('data').get(
-            'reasonList')
+        parsed_json = response_json_cancel.get('data', {}).get('reasonList', []) + response_json_refund.get('data', {}).get(
+            'reasonList', [])
+
         for index, res in enumerate(parsed_json, start=1):
             response_data = {
                 "id": res['reasonId'],
-                "cancellation_type": "cancel" if res.get("reasonId") not in [d["id"] for d in
-                                                                             data] and res in response_json_cancel.get(
-                    'data').get('reasonList') else "refund",
+                "cancellation_type": "cancel" if res.get("reasonId") not in [d["id"] for d in data] and res in response_json_cancel.get('data').get(
+                    'reasonList') else "refund",
                 "subject": res['reason'],
-                "extra_information_needed": True if res.get("reasonId") == -1 else None,
+                "extra_information_needed": True if res.get("reasonId") == -1 else False,
                 "order": index,
 
             }
@@ -59,11 +58,108 @@ class ShopihqOrderService(object):
         response._content = json.dumps(results).encode()
         return response
 
-    def order_search(self, request):
+    def order_search(self, request, user_id):
         """
         :param request:
         :return:
         """
-        path = get_url_with_endpoint('/Order/search')
-        response = requests.get(url=path, params=request.query_params)
+        data = []
+        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}')
+        response = requests.get(url=path, params=request.query_params, headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(
+                f"Error: API returned status code API: {response.status_code}")
+        response_json = json.loads(response.content.decode())
+        pagination = response_json.get("data", {})["pageNumber"]
+        count = response_json.get("data", {})["totalCount"]
+        parsed_json = response_json.get("data", {}).get("results", [])
+        for res in parsed_json:
+            response_data = {
+                "id": res["orderId"],
+                "status": {},
+                "currency": {
+                    "value": "try",
+                    "label": "TL",
+                },
+                "orderitem_set": [{
+                    "id": orderitem["orderItemId"],
+                    "status": {},
+                    "price_currency": {
+                        "value": "try",
+                        "label": "TL"
+                    },
+                    "product": {
+                        "pk": orderitem["orderItemId"],
+                        "sku": orderitem["productSku"],
+                        "base_code": orderitem["productBarcode"],
+                        "name": orderitem["productName"],
+                        "image": None,
+                        "absolute_url": None,
+                        "attributes": {},
+                        "attributes_kwargs": {}
+                    },
+                    "is_cancelled": None,
+                    "is_cancellable": orderitem["isCancelable"],
+                    "is_refundable": orderitem["isRefunded"],
+                    "active_cancellation_request": {},
+                    "shipping_company": {},
+                    "tracking_url": None,
+                    "price": orderitem["price"],
+                    "tax_rate": orderitem["taxRate"]
+                } for orderitem in res["items"]],
+                "is_cancelled": None,
+                "is_cancellable": None,
+                "is_refundable": None,
+                "shipping_address": {
+                    "pk": None
+                },
+                "billing_address": {
+                    "pk": res["billingAddress"]["id"],
+                    "email": res["billingAddress"]["email"],
+                    "phone_number": res["billingAddress"]["phone"],
+                    "first_name": res["billingAddress"]["fullName"].split()[0],
+                    "last_name": res["billingAddress"]["fullName"].split()[1],
+                    "country": None,
+                    "city": None,
+                    "line": res["billingAddress"]["details"],
+                    "title": None,
+                    "township": None,
+                    "district": None,
+                    "postcode": res["billingAddress"]["zipPostalCode"],
+                    "company_name": None,
+                    "tax_office": None,
+                    "tax_no": None,
+                    "e_bill_taxpayer": False,
+                    "address_type": "customer",
+                    "extra_field": None,
+                    "is_corporate": False,
+                    "primary": False
+                },
+                "shipping_company": {},
+                "tracking_url": None,
+                "created_date": res["createdOn"],
+                "number": res["orderId"],
+                "amount": res["totalPrice"],
+                "discount_amount": None,
+                "shipping_amount": res["shippingCost"],
+                "shipping_option_slug": None,
+                "payment_option_slug": None
+            }
+            data.append(response_data)
+        results = {"count": count, "results": data}
+        response = requests.Response()
+        response.status_code = 200
+        response._content = json.dumps(results).encode()
+        return response
+
+    def order_search_by_id(self, request, order_id):
+        """
+        :param request:
+        :return:
+        """
+        path = get_url_with_endpoint(f'/Order/search?orderIds={order_id}')
+        response = requests.get(url=path, params=request.query_params, headers=self.headers)
+        if response.status_code != 200:
+            raise Exception(
+                f"Error: API returned status code API: {response.status_code}")
         return response
