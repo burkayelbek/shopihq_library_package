@@ -60,6 +60,7 @@ class ShopihqOrderService(object):
 
     def order_search(self, request, user_id):
         """
+        :param user_id:
         :param request:
         :return:
         """
