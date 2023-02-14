@@ -112,7 +112,6 @@ class ShopihqOrderService(object):
                 "is_cancellable": None,
                 "is_refundable": None,
                 "shipping_address": {
-                    # Are they possible to send 2 orderitem two different address seperately???
                     "pk": res["items"][0].get("deliveryAddress", {})["id"],
                     "email": res["items"][0].get("deliveryAddress", {})["email"],
                     "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
