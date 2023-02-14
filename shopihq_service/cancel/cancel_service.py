@@ -14,7 +14,7 @@ class ShopihqCancelService(object):
         :return:
         """
         path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
-        response = requests.get(url=path)
+        response = requests.get(url=path, headers=self.headers)
         return response
 
     def cancel_order(self, request):
