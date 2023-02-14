@@ -59,6 +59,7 @@ class ShopihqOrderService(object):
         return response
 
     def order_search(self, request, user_id):
+        # ToDo: next & previous for pagination.
         """
         :param user_id:
         :param request:
@@ -71,7 +72,6 @@ class ShopihqOrderService(object):
             raise Exception(
                 f"Error: API returned status code API: {response.status_code}")
         response_json = json.loads(response.content.decode())
-        pagination = response_json.get("data", {})["pageNumber"]
         count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
         for res in parsed_json:
