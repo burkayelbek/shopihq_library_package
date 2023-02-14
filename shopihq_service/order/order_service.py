@@ -174,12 +174,112 @@ class ShopihqOrderService(object):
 
     def order_search_by_id(self, request, order_id):
         """
+        :param order_id:
         :param request:
         :return:
         """
+        response_data = {}
         path = get_url_with_endpoint(f'/Order/search?orderIds={order_id}')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
             raise Exception(
                 f"Error: API returned status code API: {response.status_code}")
+        response_json = json.loads(response.content.decode())
+        parsed_json = response_json.get("data", {}).get("results", [])
+        print(parsed_json)
+        for res in parsed_json:
+            response_data = {
+                "id": res["orderId"],
+                "status": {},
+                "currency": {
+                    "value": "try",
+                    "label": "TL",
+                },
+                "orderitem_set": [{
+                    "id": orderitem["orderItemId"],
+                    "status": {},
+                    "price_currency": {
+                        "value": "try",
+                        "label": "TL"
+                    },
+                    "product": {
+                        "pk": orderitem["orderItemId"],
+                        "sku": orderitem["productSku"],
+                        "base_code": orderitem["productBarcode"],
+                        "name": orderitem["productName"],
+                        "image": orderitem.get("productUrl", None),
+                        "absolute_url": None,
+                        "attributes": {},
+                        "attributes_kwargs": {}
+                    },
+                    "is_cancelled": None,
+                    "is_cancellable": orderitem["isCancelable"],
+                    "is_refundable": orderitem["isRefunded"],
+                    "active_cancellation_request": {},
+                    "shipping_company": {},
+                    "tracking_url": None,
+                    "price": orderitem["price"],
+                    "tax_rate": orderitem["taxRate"]
+                } for orderitem in res["items"]],
+                "is_cancelled": None,
+                "is_cancellable": None,
+                "is_refundable": None,
+                "shipping_address": {
+                    "pk": res["items"][0].get("deliveryAddress", {})["id"],
+                    "email": res["items"][0].get("deliveryAddress", {})["email"],
+                    "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
+                    "first_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[0],
+                    "last_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[1],
+                    "country": {},
+                    "city": {},
+                    "line": res["items"][0].get("deliveryAddress", {})["details"],
+                    "title": None,
+                    "township": {},
+                    "district": {},
+                    "postcode": res["items"][0].get("deliveryAddress", {})["zipPostalCode"],
+                    "company_name": None,
+                    "tax_office": None,
+                    "tax_no": None,
+                    "e_bill_taxpayer": False,
+                    "address_type": None,
+                    "extra_field": None,
+                    "is_corporate": False,
+                    "primary": False
+                },
+                "billing_address": {
+                    "pk": res["billingAddress"]["id"],
+                    "email": res["billingAddress"]["email"],
+                    "phone_number": res["billingAddress"]["phone"],
+                    "first_name": res["billingAddress"]["fullName"].split()[0],
+                    "last_name": res["billingAddress"]["fullName"].split()[1],
+                    "country": {},
+                    "city": {},
+                    "line": res["billingAddress"]["details"],
+                    "title": None,
+                    "township": {},
+                    "district": {},
+                    "postcode": res["billingAddress"]["zipPostalCode"],
+                    "company_name": None,
+                    "tax_office": None,
+                    "tax_no": None,
+                    "e_bill_taxpayer": False,
+                    "address_type": None,
+                    "extra_field": None,
+                    "is_corporate": False,
+                    "primary": False
+                },
+                "shipping_company": {},
+                "tracking_url": None,
+                "created_date": res["createdOn"],
+                "number": res["orderId"],
+                "amount": res["totalPrice"],
+                "discount_amount": None,
+                "shipping_amount": res["shippingCost"],
+                "shipping_option_slug": None,
+                "payment_option_slug": None
+            }
+
+        response = requests.Response()
+        response.status_code = 200
+        response._content = json.dumps(response_data).encode()
         return response
