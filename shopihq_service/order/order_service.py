@@ -103,8 +103,11 @@ class ShopihqOrderService(object):
                     "is_cancellable": orderitem["isCancelable"],
                     "is_refundable": orderitem["isRefunded"],
                     "active_cancellation_request": {},
-                    "shipping_company": {},
-                    "tracking_url": None,
+                    "shipping_company": {
+                        "name": None,
+                        "label": orderitem.get("shipment", {}).get("provider", None)
+                    },
+                    "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
                     "price": orderitem["price"],
                     "tax_rate": orderitem["taxRate"]
                 } for orderitem in res["items"]],
@@ -117,16 +120,24 @@ class ShopihqOrderService(object):
                     "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
                     "first_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[0],
                     "last_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[1],
-                    "country": {},
-                    "city": {},
+                    "country": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
+                    },
+                    "city": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
+                    },
                     "line": res["items"][0].get("deliveryAddress", {})["details"],
                     "title": None,
-                    "township": {},
-                    "district": {},
-                    "postcode": res["items"][0].get("deliveryAddress", {})["zipPostalCode"],
-                    "company_name": None,
-                    "tax_office": None,
-                    "tax_no": None,
+                    "township": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("township", "")
+                    },
+                    "district": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
+                    },
+                    "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
+                    "company_name": "",
+                    "tax_office": "",
+                    "tax_no": "",
                     "e_bill_taxpayer": False,
                     "address_type": None,
                     "extra_field": None,
@@ -134,21 +145,29 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res["billingAddress"]["id"],
-                    "email": res["billingAddress"]["email"],
-                    "phone_number": res["billingAddress"]["phone"],
-                    "first_name": res["billingAddress"]["fullName"].split()[0],
-                    "last_name": res["billingAddress"]["fullName"].split()[1],
-                    "country": {},
-                    "city": {},
-                    "line": res["billingAddress"]["details"],
+                    "pk": res.get("billingAddress", {})["id"],
+                    "email": res.get("billingAddress", {})["email"],
+                    "phone_number": res.get("billingAddress", {})["phone"],
+                    "first_name": res.get("billingAddress", {})["fullName"].split()[0],
+                    "last_name": res.get("billingAddress", {})["fullName"].split()[1],
+                    "country": {
+                        "name": res.get("billingAddress", {}).get("country", "")
+                    },
+                    "city": {
+                        "name": res.get("billingAddress", {}).get("city", "").upper()
+                    },
+                    "line": res.get("billingAddress", {})["details"],
                     "title": None,
-                    "township": {},
-                    "district": {},
-                    "postcode": res["billingAddress"]["zipPostalCode"],
-                    "company_name": None,
-                    "tax_office": None,
-                    "tax_no": None,
+                    "township": {
+                        "name": res.get("billingAddress", {}).get("township", "")
+                    },
+                    "district": {
+                        "name": res.get("billingAddress", {}).get("district", "")
+                    },
+                    "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
+                    "company_name": "",
+                    "tax_office": "",
+                    "tax_no": "",
                     "e_bill_taxpayer": False,
                     "address_type": None,
                     "extra_field": None,
@@ -163,7 +182,12 @@ class ShopihqOrderService(object):
                 "discount_amount": None,
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
-                "payment_option_slug": None
+                "payment_option_slug": None,
+                "amount_without_discount": res["subTotalPrice"],
+                "installment_count": res["payments"][0].get("installmentCount", None),
+                "payment_option": {
+                    "name": res["payments"][0].get("paymentType", None)
+                }
             }
             data.append(response_data)
         results = {"count": count, "results": data}
@@ -186,7 +210,6 @@ class ShopihqOrderService(object):
                 f"Error: API returned status code API: {response.status_code}")
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
-        print(parsed_json)
         for res in parsed_json:
             response_data = {
                 "id": res["orderId"],
@@ -204,20 +227,28 @@ class ShopihqOrderService(object):
                     },
                     "product": {
                         "pk": orderitem["orderItemId"],
-                        "sku": orderitem["productSku"],
+                        # "sku": orderitem["productSku"],
+                        "sku": orderitem["productBarcode"],
                         "base_code": orderitem["productBarcode"],
                         "name": orderitem["productName"],
                         "image": orderitem.get("productUrl", None),
-                        "absolute_url": None,
-                        "attributes": {},
+                        "absolute_url": "#",
+                        "attributes": {
+                            "integration_sap_COLOR": orderitem["productColor"],
+                            "integration_sap_SIZE1": orderitem["productSize"],
+                            "integration_sap_BRAND": orderitem["productBrand"],
+                        },
                         "attributes_kwargs": {}
                     },
-                    "is_cancelled": None,
+                    "is_cancelled": True if orderitem["status"] == 50 else False,
                     "is_cancellable": orderitem["isCancelable"],
                     "is_refundable": orderitem["isRefunded"],
                     "active_cancellation_request": {},
-                    "shipping_company": {},
-                    "tracking_url": None,
+                    "shipping_company": {
+                        "name": None,
+                        "label": orderitem.get("shipment", {}).get("provider", None)
+                    },
+                    "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
                     "price": orderitem["price"],
                     "tax_rate": orderitem["taxRate"]
                 } for orderitem in res["items"]],
@@ -230,16 +261,24 @@ class ShopihqOrderService(object):
                     "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
                     "first_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[0],
                     "last_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[1],
-                    "country": {},
-                    "city": {},
+                    "country": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
+                    },
+                    "city": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
+                    },
                     "line": res["items"][0].get("deliveryAddress", {})["details"],
                     "title": None,
-                    "township": {},
-                    "district": {},
-                    "postcode": res["items"][0].get("deliveryAddress", {})["zipPostalCode"],
-                    "company_name": None,
-                    "tax_office": None,
-                    "tax_no": None,
+                    "township": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("township", "")
+                    },
+                    "district": {
+                        "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
+                    },
+                    "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
+                    "company_name": "",
+                    "tax_office": "",
+                    "tax_no": "",
                     "e_bill_taxpayer": False,
                     "address_type": None,
                     "extra_field": None,
@@ -247,21 +286,29 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res["billingAddress"]["id"],
-                    "email": res["billingAddress"]["email"],
-                    "phone_number": res["billingAddress"]["phone"],
-                    "first_name": res["billingAddress"]["fullName"].split()[0],
-                    "last_name": res["billingAddress"]["fullName"].split()[1],
-                    "country": {},
-                    "city": {},
-                    "line": res["billingAddress"]["details"],
+                    "pk": res.get("billingAddress", {})["id"],
+                    "email": res.get("billingAddress", {})["email"],
+                    "phone_number": res.get("billingAddress", {})["phone"],
+                    "first_name": res.get("billingAddress", {})["fullName"].split()[0],
+                    "last_name": res.get("billingAddress", {})["fullName"].split()[1],
+                    "country": {
+                        "name": res.get("billingAddress", {}).get("country", "")
+                    },
+                    "city": {
+                        "name": res.get("billingAddress", {}).get("city", "").upper()
+                    },
+                    "line": res.get("billingAddress", {})["details"],
                     "title": None,
-                    "township": {},
-                    "district": {},
-                    "postcode": res["billingAddress"]["zipPostalCode"],
-                    "company_name": None,
-                    "tax_office": None,
-                    "tax_no": None,
+                    "township": {
+                        "name": res.get("billingAddress", {}).get("township", "")
+                    },
+                    "district": {
+                        "name": res.get("billingAddress", {}).get("district", "")
+                    },
+                    "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
+                    "company_name": "",
+                    "tax_office": "",
+                    "tax_no": "",
                     "e_bill_taxpayer": False,
                     "address_type": None,
                     "extra_field": None,
@@ -276,7 +323,12 @@ class ShopihqOrderService(object):
                 "discount_amount": None,
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
-                "payment_option_slug": None
+                "payment_option_slug": None,
+                "amount_without_discount": res["subTotalPrice"],
+                "installment_count": res["payments"][0].get("installmentCount", None),
+                "payment_option": {
+                    "name": res["payments"][0].get("paymentType", None)
+                }
             }
 
         response = requests.Response()
