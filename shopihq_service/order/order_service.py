@@ -8,8 +8,8 @@ from shopihq_service.utils import BasicAuthUtils
 class ShopihqOrderService(object):
     auth = BasicAuthUtils()
 
-    def __init__(self):
-        self.headers = {"Content-Type": "application/json", "Authorization": self.auth.basic_auth()}
+    def __init__(self, username, password):
+        self.headers = {"Content-Type": "application/json", "Authorization": self.auth.basic_auth(username=username, password=password)}
 
     def get_reasons(self, request):
         """
@@ -91,12 +91,17 @@ class ShopihqOrderService(object):
                     },
                     "product": {
                         "pk": orderitem["orderItemId"],
-                        "sku": orderitem["productSku"],
+                        # "sku": orderitem["productSku"],
+                        "sku": orderitem["productBarcode"],
                         "base_code": orderitem["productBarcode"],
                         "name": orderitem["productName"],
                         "image": orderitem.get("productUrl", None),
-                        "absolute_url": None,
-                        "attributes": {},
+                        "absolute_url": "#",
+                        "attributes": {
+                            "integration_sap_COLOR": orderitem.get("productColor", None),
+                            "integration_sap_SIZE1": orderitem.get("productSize", None),
+                            "integration_sap_BRAND": orderitem.get("productBrand", None),
+                        },
                         "attributes_kwargs": {}
                     },
                     "is_cancelled": None,
@@ -183,7 +188,7 @@ class ShopihqOrderService(object):
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
-                "amount_without_discount": res["subTotalPrice"],
+                "amount_without_discount": res["strikeOutPrice"],
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
                     "name": res["payments"][0].get("paymentType", None)
@@ -234,9 +239,9 @@ class ShopihqOrderService(object):
                         "image": orderitem.get("productUrl", None),
                         "absolute_url": "#",
                         "attributes": {
-                            "integration_sap_COLOR": orderitem["productColor"],
-                            "integration_sap_SIZE1": orderitem["productSize"],
-                            "integration_sap_BRAND": orderitem["productBrand"],
+                            "integration_sap_COLOR": orderitem.get("productColor", None),
+                            "integration_sap_SIZE1": orderitem.get("productSize", None),
+                            "integration_sap_BRAND": orderitem.get("productBrand", None),
                         },
                         "attributes_kwargs": {}
                     },
@@ -324,7 +329,7 @@ class ShopihqOrderService(object):
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
-                "amount_without_discount": res["subTotalPrice"],
+                "amount_without_discount": res["strikeOutPrice"],
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
                     "name": res["payments"][0].get("paymentType", None)
