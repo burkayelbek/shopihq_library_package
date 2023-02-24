@@ -1,7 +1,7 @@
 import requests
 import json
 import re
-from shopihq_service.utils import get_url_with_endpoint
+from shopihq_service.utils import get_url_with_endpoint, get_order_status_mapping
 from shopihq_service.utils import BasicAuthUtils
 
 
@@ -84,7 +84,7 @@ class ShopihqOrderService(object):
                 },
                 "orderitem_set": [{
                     "id": orderitem["orderItemId"],
-                    "status": {},
+                    "status": get_order_status_mapping(orderitem),
                     "price_currency": {
                         "value": "try",
                         "label": "TL"
@@ -104,10 +104,10 @@ class ShopihqOrderService(object):
                         },
                         "attributes_kwargs": {}
                     },
-                    "is_cancelled": None,
+                    "is_cancelled": True if orderitem["status"] == 50 else False,
                     "is_cancellable": orderitem["isCancelable"],
                     "is_refundable": orderitem["isRefunded"],
-                    "active_cancellation_request": {},
+                    "active_cancellation_request": None,
                     "shipping_company": {
                         "name": None,
                         "label": orderitem.get("shipment", {}).get("provider", None)
@@ -180,7 +180,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": None,
+                "tracking_url": res["items"][0].get("shipment", {}).get("labelUrl", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
                 "amount": res["totalPrice"],
@@ -188,7 +188,7 @@ class ShopihqOrderService(object):
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
-                "amount_without_discount": res["strikeOutPrice"],
+                "amount_without_discount": res.get("subTotalPrice", 0),
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
                     "name": res["payments"][0].get("paymentType", None)
@@ -215,6 +215,7 @@ class ShopihqOrderService(object):
                 f"Error: API returned status code API: {response.status_code}")
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
+
         for res in parsed_json:
             response_data = {
                 "id": res["orderId"],
@@ -225,7 +226,7 @@ class ShopihqOrderService(object):
                 },
                 "orderitem_set": [{
                     "id": orderitem["orderItemId"],
-                    "status": {},
+                    "status": get_order_status_mapping(orderitem),
                     "price_currency": {
                         "value": "try",
                         "label": "TL"
@@ -248,7 +249,7 @@ class ShopihqOrderService(object):
                     "is_cancelled": True if orderitem["status"] == 50 else False,
                     "is_cancellable": orderitem["isCancelable"],
                     "is_refundable": orderitem["isRefunded"],
-                    "active_cancellation_request": {},
+                    "active_cancellation_request": None,
                     "shipping_company": {
                         "name": None,
                         "label": orderitem.get("shipment", {}).get("provider", None)
@@ -321,7 +322,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": None,
+                "tracking_url": res["items"][0].get("shipment", {}).get("labelUrl", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
                 "amount": res["totalPrice"],
@@ -329,7 +330,7 @@ class ShopihqOrderService(object):
                 "shipping_amount": res["shippingCost"],
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
-                "amount_without_discount": res["strikeOutPrice"],
+                "amount_without_discount": res.get("subTotalPrice", 0),
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
                     "name": res["payments"][0].get("paymentType", None)
