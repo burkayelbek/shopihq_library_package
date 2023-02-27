@@ -215,6 +215,7 @@ class ShopihqOrderService(object):
                 f"Error: API returned status code API: {response.status_code}")
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
+        orderitem_set = self._fill_orderitem_set(parsed_json)
 
         for res in parsed_json:
             response_data = {
@@ -224,40 +225,7 @@ class ShopihqOrderService(object):
                     "value": "try",
                     "label": "TL",
                 },
-                "orderitem_set": [{
-                    "id": orderitem["orderItemId"],
-                    "status": get_order_status_mapping(orderitem),
-                    "price_currency": {
-                        "value": "try",
-                        "label": "TL"
-                    },
-                    "product": {
-                        "pk": orderitem["orderItemId"],
-                        # "sku": orderitem["productSku"],
-                        "sku": orderitem["productBarcode"],
-                        "base_code": orderitem["productBarcode"],
-                        "name": orderitem["productName"],
-                        "image": orderitem.get("productUrl", None),
-                        "absolute_url": "#",
-                        "attributes": {
-                            "integration_sap_COLOR": orderitem.get("productColor", None),
-                            "integration_sap_SIZE1": orderitem.get("productSize", None),
-                            "integration_sap_BRAND": orderitem.get("productBrand", None),
-                        },
-                        "attributes_kwargs": {}
-                    },
-                    "is_cancelled": True if orderitem["status"] == 50 else False,
-                    "is_cancellable": orderitem["isCancelable"],
-                    "is_refundable": orderitem["isRefunded"],
-                    "active_cancellation_request": None,
-                    "shipping_company": {
-                        "name": None,
-                        "label": orderitem.get("shipment", {}).get("provider", None)
-                    },
-                    "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
-                    "price": orderitem["price"],
-                    "tax_rate": orderitem["taxRate"]
-                } for orderitem in res["items"]],
+                "orderitem_set": orderitem_set,
                 "is_cancelled": None,
                 "is_cancellable": None,
                 "is_refundable": None,
@@ -341,3 +309,76 @@ class ShopihqOrderService(object):
         response.status_code = 200
         response._content = json.dumps(response_data).encode()
         return response
+
+    def _fill_orderitem_set(self, order_data):
+        if not isinstance(order_data, list):
+            order_data = [order_data]
+        order_number = order_data[0].get("orderId", None)
+        orderitem_status_check = any(orderitem["status"] == 50 for orderitem in order_data[0]["items"])
+        orderitem_set = [{
+            "id": orderitem["orderItemId"],
+            "status": get_order_status_mapping(orderitem),
+            "price_currency": {
+                "value": "try",
+                "label": "TL"
+            },
+            "product": {
+                "pk": orderitem["orderItemId"],
+                # "sku": orderitem["productSku"],
+                "sku": orderitem["productBarcode"],
+                "base_code": orderitem["productBarcode"],
+                "name": orderitem["productName"],
+                "image": orderitem.get("productUrl", None),
+                "absolute_url": "#",
+                "attributes": {
+                    "integration_sap_COLOR": orderitem.get("productColor", None),
+                    "integration_sap_SIZE1": orderitem.get("productSize", None),
+                    "integration_sap_BRAND": orderitem.get("productBrand", None),
+                },
+                "attributes_kwargs": {}
+            },
+            "is_cancelled": True if orderitem["status"] == 50 else False,
+            "is_cancellable": orderitem["isCancelable"],
+            "is_refundable": orderitem["isRefunded"],
+            "active_cancellation_request": None,
+            "shipping_company": {
+                "name": None,
+                "label": orderitem.get("shipment", {}).get("provider", None)
+            },
+            "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
+            "price": orderitem["price"],
+            "tax_rate": orderitem["taxRate"]
+        } for orderitem in order_data[0]["items"]]
+
+        if orderitem_status_check:
+            path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
+            response = requests.get(url=path, headers=self.headers)
+            response_dict = json.loads(response.text)
+            cancellable_items = response_dict.get('data').get('cancelableModel')
+
+            matches_non_cancellable_items = [roi for roi in order_data[0]['items'] if
+                                             any(order_item['orderItemId'] == roi['orderItemId'] and order_item['isCancelable'] == False and
+                                                 roi["status"] == 50 for order_item in cancellable_items)]
+
+            cancellation_requests = {}
+            for orderitem in matches_non_cancellable_items:
+                cancellation_requests = {
+                    "cancellation_type": {
+                        "value": "cancel",
+                        "label": "İptal"
+                    },
+                    "status": {
+                        "value": "Completed",
+                        "label": "Completed"
+                    },
+                    "easy_return": None,
+                    "description": "",
+                    "reason": next(roi["reasonForNonCancelable"][0] for roi in cancellable_items if roi['orderItemId'] == orderitem["orderItemId"]),
+                    "order_item": orderitem.get("orderItemId", None)
+                }
+
+            for orderitem in orderitem_set:
+                if orderitem["is_cancelled"]:
+                    orderitem["active_cancellation_request"] = cancellation_requests
+
+        return orderitem_set
