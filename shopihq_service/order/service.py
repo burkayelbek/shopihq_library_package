@@ -32,7 +32,7 @@ class ShopihqOrderService(object):
         refund_params = {'type': 1, 'language': language}
         cancel_response = requests.get(url=path, params=cancel_params, headers=self.headers)
         refund_response = requests.get(url=path, params=refund_params, headers=self.headers)
-        if (cancel_response.status_code and refund_response.status_code) == 200:
+        if (cancel_response.status_code and refund_response.status_code) != 200:
             response = requests.Response()
             response.status_code = refund_response.status_code
             return response
