@@ -32,10 +32,10 @@ class ShopihqOrderService(object):
         refund_params = {'type': 1, 'language': language}
         cancel_response = requests.get(url=path, params=cancel_params, headers=self.headers)
         refund_response = requests.get(url=path, params=refund_params, headers=self.headers)
-        if (cancel_response.status_code and refund_response.status_code) != 200:
-            raise Exception(
-                f"Error: API returned status code CancelAPI: {cancel_response.status_code} "
-                f"& REFUND API: {refund_response.status_code}")
+        if (cancel_response.status_code and refund_response.status_code) == 200:
+            response = requests.Response()
+            response.status_code = refund_response.status_code
+            return response
         response_json_cancel = json.loads(cancel_response.content.decode())
         response_json_refund = json.loads(refund_response.content.decode())
         parsed_json = response_json_cancel.get('data', {}).get('reasonList', []) + response_json_refund.get('data', {}).get(
@@ -69,8 +69,10 @@ class ShopihqOrderService(object):
         path = get_url_with_endpoint(f'/Order/search?customerId={user_id}')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
-            raise Exception(
-                f"Error: API returned status code API: {response.status_code}")
+            new_response = requests.Response()
+            new_response.status_code = response.status_code
+            new_response._content = response
+            return new_response
         response_json = json.loads(response.content.decode())
         count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
@@ -211,8 +213,10 @@ class ShopihqOrderService(object):
         path = get_url_with_endpoint(f'/Order/search?orderIds={order_id}')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
-            raise Exception(
-                f"Error: API returned status code API: {response.status_code}")
+            new_response = requests.Response()
+            new_response.status_code = response.status_code
+            new_response._content = response
+            return new_response
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
         orderitem_set = self._fill_orderitem_set(parsed_json)

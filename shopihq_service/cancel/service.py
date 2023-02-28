@@ -26,20 +26,6 @@ class ShopihqCancelService(object):
         :param request:
         :return:
         """
-        # ToDo --> Hint: is_cancellable method request is getting data long if data is more
-        order_number = request.data['orderId']
-        response_is_cancellable = self.is_cancellable(order_number=order_number)
-        response_dict = json.loads(response_is_cancellable.text)
-        cancellable_items = response_dict.get('data').get('cancelableModel')
-
-        # Check if orderitem id cancellable value exist in cancellable model if it is true
-        matches_is_cancelable_items = [roi for roi in request.data['orderItems'] if
-                                       any(order_item['orderItemId'] == roi['orderItemId'] and order_item['isCancelable'] == True for
-                                           order_item in cancellable_items)]
-
-        if not matches_is_cancelable_items:
-            print("Exception")
-
         path = get_url_with_endpoint('/Order/cancelOrder')
         response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
         return response
