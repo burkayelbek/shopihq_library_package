@@ -66,7 +66,7 @@ class ShopihqOrderService(object):
         :return:
         """
         data = []
-        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}')
+        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
             new_response = requests.Response()
