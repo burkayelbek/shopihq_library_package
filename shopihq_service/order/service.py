@@ -76,6 +76,7 @@ class ShopihqOrderService(object):
         response_json = json.loads(response.content.decode())
         count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
+
         for res in parsed_json:
             response_data = {
                 "id": res["orderId"],
@@ -84,40 +85,7 @@ class ShopihqOrderService(object):
                     "value": "try",
                     "label": "TL",
                 },
-                "orderitem_set": [{
-                    "id": orderitem["orderItemId"],
-                    "status": get_order_status_mapping(orderitem),
-                    "price_currency": {
-                        "value": "try",
-                        "label": "TL"
-                    },
-                    "product": {
-                        "pk": orderitem["orderItemId"],
-                        # "sku": orderitem["productSku"],
-                        "sku": orderitem["productBarcode"],
-                        "base_code": orderitem["productBarcode"],
-                        "name": orderitem["productName"],
-                        "image": orderitem.get("productUrl", None),
-                        "absolute_url": "#",
-                        "attributes": {
-                            "integration_sap_COLOR": orderitem.get("productColor", None),
-                            "integration_sap_SIZE1": orderitem.get("productSize", None),
-                            "integration_sap_BRAND": orderitem.get("productBrand", None),
-                        },
-                        "attributes_kwargs": {}
-                    },
-                    "is_cancelled": True if orderitem["status"] == 50 else False,
-                    "is_cancellable": orderitem["isCancelable"],
-                    "is_refundable": orderitem["isRefunded"],
-                    "active_cancellation_request": None,
-                    "shipping_company": {
-                        "name": None,
-                        "label": orderitem.get("shipment", {}).get("provider", None)
-                    },
-                    "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
-                    "price": orderitem["price"],
-                    "tax_rate": orderitem["taxRate"]
-                } for orderitem in res["items"]],
+                "orderitem_set": self._fill_orderitem_set(res),
                 "is_cancelled": None,
                 "is_cancellable": None,
                 "is_refundable": None,
@@ -318,7 +286,7 @@ class ShopihqOrderService(object):
         if not isinstance(order_data, list):
             order_data = [order_data]
         order_number = order_data[0].get("orderId", None)
-        orderitem_status_check = any(orderitem["status"] == 50 for orderitem in order_data[0]["items"])
+        orderitem_status_check = any(orderitem["status"] == 50 for order in order_data for orderitem in order["items"])
         orderitem_set = [{
             "id": orderitem["orderItemId"],
             "status": get_order_status_mapping(orderitem),
@@ -352,7 +320,7 @@ class ShopihqOrderService(object):
             "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
             "price": orderitem["price"],
             "tax_rate": orderitem["taxRate"]
-        } for orderitem in order_data[0]["items"]]
+        } for order in order_data for orderitem in order["items"]]
 
         if orderitem_status_check:
             path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
