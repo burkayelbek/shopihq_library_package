@@ -76,16 +76,20 @@ class ShopihqOrderService(object):
         response_json = json.loads(response.content.decode())
         count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
+        orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
+        parent_status = self._get_parent_status(orderitem=orderitem_set)
 
         for res in parsed_json:
+            orderitem_set = self._fill_orderitem_set(order_data=res),
+            parent_status = self._get_parent_status(orderitem=orderitem_set[0])
             response_data = {
                 "id": res["orderId"],
-                "status": {},
+                "status": parent_status,
                 "currency": {
                     "value": "try",
                     "label": "TL",
                 },
-                "orderitem_set": self._fill_orderitem_set(res),
+                "orderitem_set": orderitem_set[0],
                 "is_cancelled": None,
                 "is_cancellable": None,
                 "is_refundable": None,
@@ -165,6 +169,7 @@ class ShopihqOrderService(object):
                 }
             }
             data.append(response_data)
+
         results = {"count": count, "results": data}
         response = requests.Response()
         response.status_code = 200
@@ -187,12 +192,14 @@ class ShopihqOrderService(object):
             return new_response
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
-        orderitem_set = self._fill_orderitem_set(parsed_json)
+        orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
+        parent_status = self._get_parent_status(orderitem=orderitem_set)
+
 
         for res in parsed_json:
             response_data = {
                 "id": res["orderId"],
-                "status": {},
+                "status": parent_status,
                 "currency": {
                     "value": "try",
                     "label": "TL",
@@ -296,8 +303,7 @@ class ShopihqOrderService(object):
             },
             "product": {
                 "pk": orderitem["orderItemId"],
-                # "sku": orderitem["productSku"],
-                "sku": orderitem["productBarcode"],
+                "sku": orderitem["productSku"],
                 "base_code": orderitem["productBarcode"],
                 "name": orderitem["productName"],
                 "image": orderitem.get("productUrl", None),
@@ -318,6 +324,7 @@ class ShopihqOrderService(object):
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
             "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
+            "tracking_number": orderitem.get("shipment", {}).get("trackingNumber", None),
             "price": orderitem["price"],
             "tax_rate": orderitem["taxRate"]
         } for order in order_data for orderitem in order["items"]]
@@ -354,3 +361,24 @@ class ShopihqOrderService(object):
                     orderitem["active_cancellation_request"] = cancellation_requests
 
         return orderitem_set
+
+    def _get_parent_status(self, orderitem):
+        if not isinstance(orderitem, list):
+            orderitem = [orderitem]
+        num_items = len(orderitem)
+        num_canceled = sum(1 for oi in orderitem if oi['status']['value'] == '100')
+        num_delivered = sum(1 for oi in orderitem if oi['status']['value'] == '550')
+        num_preparing = sum(1 for oi in orderitem if oi['status']['value'] == '450')
+        # num_shipped = sum(1 for oi in orderitem if oi['status']['value'] == '450')
+
+        if num_preparing > (num_canceled + num_delivered):
+            return {'value': '450', 'label': 'Hazırlanıyor'}
+        elif num_canceled == num_items:
+            return {'value': '100', 'label': 'İptal Edildi'}
+        elif num_delivered == num_items:
+            return {'value': '550', 'label': 'Teslim Edildi'}
+        elif num_canceled + num_delivered == num_items - 2 and num_preparing == 0:
+            return {'value': '550', 'label': 'Teslim Edildi'}
+        else:
+            return None
+
