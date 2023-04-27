@@ -366,10 +366,11 @@ class ShopihqOrderService(object):
         if not isinstance(orderitem, list):
             orderitem = [orderitem]
         num_items = len(orderitem)
-        num_canceled = sum(1 for oi in orderitem if oi['status']['value'] == '100')
-        num_delivered = sum(1 for oi in orderitem if oi['status']['value'] == '550')
-        num_preparing = sum(1 for oi in orderitem if oi['status']['value'] == '450')
-        # num_shipped = sum(1 for oi in orderitem if oi['status']['value'] == '450')
+        num_canceled = sum(1 for oi in orderitem if oi['status'].get('value') == '100')
+        num_delivered = sum(1 for oi in orderitem if oi['status'].get('value') == '550')
+        num_preparing = sum(1 for oi in orderitem if oi['status'].get('value') == '450')
+        num_shipped = sum(1 for oi in orderitem if oi['status'].get('value') == '500')
+        num_remaining = num_items - num_canceled - num_delivered
 
         if num_preparing > (num_canceled + num_delivered):
             return {'value': '450', 'label': 'Hazırlanıyor'}
@@ -377,8 +378,9 @@ class ShopihqOrderService(object):
             return {'value': '100', 'label': 'İptal Edildi'}
         elif num_delivered == num_items:
             return {'value': '550', 'label': 'Teslim Edildi'}
-        elif num_canceled + num_delivered == num_items - 2 and num_preparing == 0:
+        elif num_canceled + num_delivered == num_items - num_remaining and num_preparing == num_remaining:
             return {'value': '550', 'label': 'Teslim Edildi'}
+        elif num_shipped == num_items:
+            return {'value': '500', 'label': 'Kargolandı'}
         else:
             return None
-
