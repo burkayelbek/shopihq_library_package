@@ -1,6 +1,7 @@
 import requests
 import json
 import re
+from urllib.parse import urlparse, urlencode, urlunparse
 from shopihq_service.utils import get_url_with_endpoint, get_order_status_mapping
 from shopihq_service.utils import BasicAuthUtils
 
@@ -66,18 +67,29 @@ class ShopihqOrderService(object):
         :return:
         """
         data = []
-        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true')
+
+        page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
+        all_counts_path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true&pageSize=9999999')
+        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
+
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
+        count_response = requests.get(url=all_counts_path, params=request.query_params, headers=self.headers)
+
         if response.status_code != 200:
             new_response = requests.Response()
             new_response.status_code = response.status_code
             new_response._content = response
             return new_response
+        if count_response.status_code != 200:
+            new_response = requests.Response()
+            new_response.status_code = response.status_code
+            new_response._content = response
+            return new_response
         response_json = json.loads(response.content.decode())
-        count = response_json.get("data", {})["totalCount"]
+        response_json_count = json.loads(count_response.content.decode())
+
+        count = response_json_count.get("data", {})["totalCount"]  # Count works in each page on endpoint not at all
         parsed_json = response_json.get("data", {}).get("results", [])
-        orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
-        parent_status = self._get_parent_status(orderitem=orderitem_set)
 
         for res in parsed_json:
             orderitem_set = self._fill_orderitem_set(order_data=res),
@@ -170,7 +182,25 @@ class ShopihqOrderService(object):
             }
             data.append(response_data)
 
-        results = {"count": count, "results": data}
+        base_url = request.build_absolute_uri()
+        url_parts = list(urlparse(base_url))
+        query_params = dict(request.query_params)
+        if page_number > 1:
+            query_params["format"] = "json"
+            query_params['page'] = page_number - 1
+            url_parts[4] = urlencode(query_params, doseq=True)
+            prev_url = urlunparse(url_parts)
+        else:
+            prev_url = None
+
+        if count != 0:
+            query_params["format"] = "json"
+            query_params['page'] = page_number + 1
+            url_parts[4] = urlencode(query_params, doseq=True)
+            next_url = urlunparse(url_parts)
+        else:
+            next_url = None
+        results = {"count": count, "results": data, "next": next_url, "previous": prev_url}
         response = requests.Response()
         response.status_code = 200
         response._content = json.dumps(results).encode()
@@ -315,9 +345,9 @@ class ShopihqOrderService(object):
                 },
                 "attributes_kwargs": {}
             },
-            "is_cancelled": True if orderitem["status"] == 50 else False,
+            "is_cancelled": True if orderitem["status"] == 50 or orderitem["isRefunded"] == True else False,
             "is_cancellable": orderitem["isCancelable"],
-            "is_refundable": orderitem["isRefunded"],
+            "is_refundable": orderitem["isReturnable"],
             "active_cancellation_request": None,
             "shipping_company": {
                 "name": None,
