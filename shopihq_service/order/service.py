@@ -60,7 +60,6 @@ class ShopihqOrderService(object):
         return response
 
     def order_search(self, request, user_id):
-        # ToDo: next & previous for pagination.
         """
         :param user_id:
         :param request:
