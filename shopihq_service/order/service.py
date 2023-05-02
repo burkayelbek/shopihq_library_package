@@ -75,15 +75,15 @@ class ShopihqOrderService(object):
         count_response = requests.get(url=all_counts_path, params=request.query_params, headers=self.headers)
 
         if response.status_code != 200:
-            new_response = requests.Response()
-            new_response.status_code = response.status_code
-            new_response._content = response
-            return new_response
+            response_error = requests.Response()
+            response_error.status_code = response.status_code
+            response_error._content = response
+            return response_error
         if count_response.status_code != 200:
-            new_response = requests.Response()
-            new_response.status_code = response.status_code
-            new_response._content = response
-            return new_response
+            response_error = requests.Response()
+            response_error.status_code = response.status_code
+            response_error._content = response
+            return response_error
         response_json = json.loads(response.content.decode())
         response_json_count = json.loads(count_response.content.decode())
 
@@ -119,7 +119,7 @@ class ShopihqOrderService(object):
                     "line": res["items"][0].get("deliveryAddress", {})["details"],
                     "title": None,
                     "township": {
-                        "name": res["items"][0].get("deliveryAddress", {}).get("township", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
                     },
                     "district": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
@@ -149,7 +149,7 @@ class ShopihqOrderService(object):
                     "line": res.get("billingAddress", {})["details"],
                     "title": None,
                     "township": {
-                        "name": res.get("billingAddress", {}).get("township", "")
+                        "name": res.get("billingAddress", {}).get("town", "")
                     },
                     "district": {
                         "name": res.get("billingAddress", {}).get("district", "")
@@ -192,7 +192,8 @@ class ShopihqOrderService(object):
         else:
             prev_url = None
 
-        if count != 0:
+        # Each page has 10 order to show and calculate manually.
+        if count > (page_number * 10):
             query_params["format"] = "json"
             query_params['page'] = page_number + 1
             url_parts[4] = urlencode(query_params, doseq=True)
@@ -252,7 +253,7 @@ class ShopihqOrderService(object):
                     "line": res["items"][0].get("deliveryAddress", {})["details"],
                     "title": None,
                     "township": {
-                        "name": res["items"][0].get("deliveryAddress", {}).get("township", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
                     },
                     "district": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
@@ -282,7 +283,7 @@ class ShopihqOrderService(object):
                     "line": res.get("billingAddress", {})["details"],
                     "title": None,
                     "township": {
-                        "name": res.get("billingAddress", {}).get("township", "")
+                        "name": res.get("billingAddress", {}).get("town", "")
                     },
                     "district": {
                         "name": res.get("billingAddress", {}).get("district", "")
