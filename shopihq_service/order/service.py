@@ -10,7 +10,8 @@ class ShopihqOrderService(object):
     auth = BasicAuthUtils()
 
     def __init__(self, username, password):
-        self.headers = {"Content-Type": "application/json", "Authorization": self.auth.basic_auth(username=username, password=password)}
+        self.headers = {"Content-Type": "application/json",
+                        "Authorization": self.auth.basic_auth(username=username, password=password)}
 
     def get_reasons(self, request):
         """
@@ -39,13 +40,16 @@ class ShopihqOrderService(object):
             return response
         response_json_cancel = json.loads(cancel_response.content.decode())
         response_json_refund = json.loads(refund_response.content.decode())
-        parsed_json = response_json_cancel.get('data', {}).get('reasonList', []) + response_json_refund.get('data', {}).get(
+        parsed_json = response_json_cancel.get('data', {}).get('reasonList', []) + response_json_refund.get('data',
+                                                                                                            {}).get(
             'reasonList', [])
 
         for index, res in enumerate(parsed_json, start=1):
             response_data = {
                 "id": res['reasonId'],
-                "cancellation_type": "cancel" if res.get("reasonId") not in [d["id"] for d in data] and res in response_json_cancel.get('data').get(
+                "cancellation_type": "cancel" if res.get("reasonId") not in [d["id"] for d in
+                                                                             data] and res in response_json_cancel.get(
+                    'data').get(
                     'reasonList') else "refund",
                 "subject": res['reason'],
                 "extra_information_needed": True if res.get("reasonId") == -1 else False,
@@ -68,26 +72,19 @@ class ShopihqOrderService(object):
         data = []
 
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
-        all_counts_path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true&pageSize=9999999')
-        path = get_url_with_endpoint(f'/Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
+        path = get_url_with_endpoint(
+            f'/Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
 
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
-        count_response = requests.get(url=all_counts_path, params=request.query_params, headers=self.headers)
 
         if response.status_code != 200:
             response_error = requests.Response()
             response_error.status_code = response.status_code
             response_error._content = response
             return response_error
-        if count_response.status_code != 200:
-            response_error = requests.Response()
-            response_error.status_code = response.status_code
-            response_error._content = response
-            return response_error
-        response_json = json.loads(response.content.decode())
-        response_json_count = json.loads(count_response.content.decode())
 
-        count = response_json_count.get("data", {})["totalCount"]  # Count works in each page on endpoint not at all
+        response_json = json.loads(response.content.decode())
+        count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
 
         for res in parsed_json:
@@ -200,7 +197,7 @@ class ShopihqOrderService(object):
             next_url = urlunparse(url_parts)
         else:
             next_url = None
-        results = {"count": count, "results": data, "next": next_url, "previous": prev_url}
+        results = {"count": count, "next": next_url, "previous": prev_url, "results": data}
         response = requests.Response()
         response.status_code = 200
         response._content = json.dumps(results).encode()
@@ -224,7 +221,6 @@ class ShopihqOrderService(object):
         parsed_json = response_json.get("data", {}).get("results", [])
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
-
 
         for res in parsed_json:
             response_data = {
@@ -366,7 +362,8 @@ class ShopihqOrderService(object):
             cancellable_items = response_dict.get('data').get('cancelableModel')
 
             matches_non_cancellable_items = [roi for roi in order_data[0]['items'] if
-                                             any(order_item['orderItemId'] == roi['orderItemId'] and order_item['isCancelable'] == False and
+                                             any(order_item['orderItemId'] == roi['orderItemId'] and
+                                                 order_item['isCancelable'] is False and
                                                  roi["status"] == 50 for order_item in cancellable_items)]
 
             cancellation_requests = {}
@@ -382,7 +379,8 @@ class ShopihqOrderService(object):
                     },
                     "easy_return": None,
                     "description": "",
-                    "reason": next(roi["reasonForNonCancelable"][0] for roi in cancellable_items if roi['orderItemId'] == orderitem["orderItemId"]),
+                    "reason": next(roi["reasonForNonCancelable"][0] for roi in cancellable_items if
+                                   roi['orderItemId'] == orderitem["orderItemId"]),
                     "order_item": orderitem.get("orderItemId", None)
                 }
 
