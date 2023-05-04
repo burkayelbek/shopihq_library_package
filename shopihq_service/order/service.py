@@ -213,10 +213,10 @@ class ShopihqOrderService(object):
         path = get_url_with_endpoint(f'/Order/search?orderIds={order_id}')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
-            new_response = requests.Response()
-            new_response.status_code = response.status_code
-            new_response._content = response
-            return new_response
+            response_error = requests.Response()
+            response_error.status_code = response.status_code
+            response_error._content = response
+            return response_error
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
