@@ -319,7 +319,8 @@ class ShopihqOrderService(object):
         if not isinstance(order_data, list):
             order_data = [order_data]
         order_number = order_data[0].get("orderId", None)
-        orderitem_status_check = any(orderitem["status"] == 50 for order in order_data for orderitem in order["items"])
+        orderitem_cancel_status_check = any(orderitem["status"] == 50 for order in order_data for orderitem in
+                                            order["items"])
         orderitem_set = [{
             "id": orderitem["orderItemId"],
             "status": get_order_status_mapping(orderitem),
@@ -355,7 +356,7 @@ class ShopihqOrderService(object):
             "tax_rate": orderitem["taxRate"]
         } for order in order_data for orderitem in order["items"]]
 
-        if orderitem_status_check:
+        if orderitem_cancel_status_check:
             path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
             response = requests.get(url=path, headers=self.headers)
             response_dict = json.loads(response.text)
@@ -400,7 +401,7 @@ class ShopihqOrderService(object):
         num_shipped = sum(1 for oi in orderitem if oi['status'].get('value') == '500')
         num_remaining = num_items - num_canceled - num_delivered
 
-        if num_preparing > (num_canceled + num_delivered):
+        if num_preparing >= (num_canceled + num_delivered):
             return {'value': '450', 'label': 'Hazırlanıyor'}
         elif num_canceled == num_items:
             return {'value': '100', 'label': 'İptal Edildi'}
