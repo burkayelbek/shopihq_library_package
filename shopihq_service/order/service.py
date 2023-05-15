@@ -373,13 +373,13 @@ class ShopihqOrderService(object):
             response_dict = json.loads(response.text)
             refundable_items = response_dict.get('data')
 
-            matches_refundable_items = [roi for roi in order_data['items'] if
+            matches_refunded_items = [roi for roi in order_data['items'] if
                                         any(order_item['orderItemExternalId'] == roi['orderItemId'] and
                                             order_item['isDraftReturnable'] is False and
                                             roi["status"] == 540 and len(roi["returnInfo"]) >= 1
                                             for order_item in refundable_items)]
 
-            for orderitem in matches_refundable_items:
+            for orderitem in matches_refunded_items:
                 refund_status, easy_return_code = self._get_refund_status(orderitem.get("returnInfo", []))
                 cancellation_requests = {
                     "cancellation_type": {
