@@ -318,9 +318,12 @@ class ShopihqOrderService(object):
     def _fill_orderitem_set(self, order_data):
         if not isinstance(order_data, list):
             order_data = [order_data]
-        order_number = order_data[0].get("orderId", None)
-        orderitem_cancel_status_check = any(orderitem["status"] == 50 for order in order_data for orderitem in
-                                            order["items"])
+        order_data = order_data[0]
+        order_number = order_data.get("orderId", "")
+
+        orderitem_refund_status_check = any(orderitem["status"] == 540 and len(orderitem["returnInfo"]) >= 1
+                                            for orderitem in order_data["items"])
+        cancellation_requests = {}
         orderitem_set = [{
             "id": orderitem["orderItemId"],
             "status": get_order_status_mapping(orderitem),
@@ -345,6 +348,7 @@ class ShopihqOrderService(object):
             "is_cancelled": True if orderitem["status"] == 50 or orderitem["isRefunded"] == True else False,
             "is_cancellable": orderitem["isCancelable"],
             "is_refundable": orderitem["isReturnable"],
+            "cancellationrequest_set": [],
             "active_cancellation_request": None,
             "shipping_company": {
                 "name": None,
@@ -354,40 +358,50 @@ class ShopihqOrderService(object):
             "tracking_number": orderitem.get("invoiceNumber", None),
             "price": orderitem["price"],
             "tax_rate": orderitem["taxRate"]
-        } for order in order_data for orderitem in order["items"]]
+        } for orderitem in order_data["items"]]
 
-        if orderitem_cancel_status_check:
-            path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
-            response = requests.get(url=path, headers=self.headers)
+        if orderitem_refund_status_check:
+            payload = {
+                "orderId": order_number,
+                "orderItemIds": [
+                    str(orderitem["id"]) for orderitem in orderitem_set
+                ]
+            }
+
+            path = get_url_with_endpoint('/Return/isDraftReturnable')
+            response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
             response_dict = json.loads(response.text)
-            cancellable_items = response_dict.get('data').get('cancelableModel')
+            refundable_items = response_dict.get('data')
 
-            matches_non_cancellable_items = [roi for roi in order_data[0]['items'] if
-                                             any(order_item['orderItemId'] == roi['orderItemId'] and
-                                                 order_item['isCancelable'] is False and
-                                                 roi["status"] == 50 for order_item in cancellable_items)]
+            matches_refundable_items = [roi for roi in order_data['items'] if
+                                        any(order_item['orderItemExternalId'] == roi['orderItemId'] and
+                                            order_item['isDraftReturnable'] is False and
+                                            roi["status"] == 540 and len(roi["returnInfo"]) >= 1
+                                            for order_item in refundable_items)]
 
-            cancellation_requests = {}
-            for orderitem in matches_non_cancellable_items:
+            for orderitem in matches_refundable_items:
+                refund_status, easy_return_code = self._get_refund_status(orderitem.get("returnInfo", []))
                 cancellation_requests = {
                     "cancellation_type": {
-                        "value": "cancel",
-                        "label": "İptal"
+                        "value": "refund",
+                        "label": "İade"
                     },
                     "status": {
-                        "value": "Completed",
-                        "label": "Completed"
+                        "value": refund_status,
+                        "label": refund_status
                     },
-                    "easy_return": None,
+                    "easy_return": {
+                        "code": easy_return_code,
+                    },
                     "description": "",
-                    "reason": next(roi["reasonForNonCancelable"][0] for roi in cancellable_items if
-                                   roi['orderItemId'] == orderitem["orderItemId"]),
+                    "reason": "",
                     "order_item": orderitem.get("orderItemId", None)
                 }
 
             for orderitem in orderitem_set:
-                if orderitem["is_cancelled"]:
+                if orderitem["id"] == cancellation_requests.get("order_item"):
                     orderitem["active_cancellation_request"] = cancellation_requests
+                    orderitem["cancellationrequest_set"].append(cancellation_requests)
 
         return orderitem_set
 
@@ -399,17 +413,34 @@ class ShopihqOrderService(object):
         num_delivered = sum(1 for oi in orderitem if oi['status'].get('value') == '550')
         num_preparing = sum(1 for oi in orderitem if oi['status'].get('value') == '450')
         num_shipped = sum(1 for oi in orderitem if oi['status'].get('value') == '500')
-        num_remaining = num_items - num_canceled - num_delivered
+        num_refunded = sum(1 for oi in orderitem if oi['status'].get('value') == '600')
+        num_remaining = num_items - num_canceled - num_delivered - num_refunded
 
-        if num_preparing >= (num_canceled + num_delivered):
+        if num_preparing >= (num_canceled + num_delivered + num_refunded):
             return {'value': '450', 'label': 'Hazırlanıyor'}
         elif num_canceled == num_items:
             return {'value': '100', 'label': 'İptal Edildi'}
-        elif num_delivered == num_items:
-            return {'value': '550', 'label': 'Teslim Edildi'}
-        elif num_canceled + num_delivered == num_items - num_remaining and num_preparing == num_remaining:
+        elif num_delivered == num_items or (
+                num_canceled + num_delivered == num_items - num_remaining + num_refunded and num_preparing == num_remaining):
             return {'value': '550', 'label': 'Teslim Edildi'}
         elif num_shipped == num_items:
             return {'value': '500', 'label': 'Kargolandı'}
+        elif num_refunded == num_items:
+            return {'value': '600', 'label': 'İade Edildi'}
         else:
             return None
+
+    def _get_refund_status(self, refundable_item):
+        last_item = refundable_item[-1]
+
+        if last_item.get("returnStatus") == 2:
+            refund_status = ""
+            easy_return_code = ""
+        elif last_item.get("returnStatus") == 635:
+            refund_status = "Completed"
+            easy_return_code = last_item.get("shipmentCode", "")
+        else:
+            refund_status = "Waiting"
+            easy_return_code = last_item.get("shipmentCode", "")
+        return refund_status, easy_return_code
+

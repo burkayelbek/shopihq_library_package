@@ -49,7 +49,7 @@ class ShopihqCancelService(object):
             "orderId": order_id,
             "orderItemList": [],
             "returnDestinationNodeId": None,
-            "shipmentProvider": "20",
+            "shipmentProvider": "9",
             "deliveryAddressforRejectedReturn": None
         }
 
@@ -58,13 +58,15 @@ class ShopihqCancelService(object):
             if cancellation_type == "cancel":
                 order_item_payload = {
                     "orderItemId": orderitem.get("orderItemId", ""),
-                    "customerReason": int(orderitem["customerReason"])
+                    "customerReason": int(orderitem["customerReason"]),
+                    "customerStatement": orderitem["description"] if int(orderitem["customerReason"]) == -1 else ""
                 }
                 cancel_payload["orderItems"].append(order_item_payload)
             else:
                 order_item_payload = {
                     "orderItemExternalId": orderitem.get("orderItemId", ""),
-                    "customerReason": int(orderitem["customerReason"])
+                    "customerReason": int(orderitem["customerReason"]),
+                    "customerStatement": orderitem["description"] if int(orderitem["customerReason"]) == -1 else ""
                 }
                 return_payload["orderItemList"].append(order_item_payload)
 
