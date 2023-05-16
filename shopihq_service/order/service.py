@@ -373,12 +373,11 @@ class ShopihqOrderService(object):
             response_dict = json.loads(response.text)
             refundable_items = response_dict.get('data')
 
-            matches_refunded_items = [roi for roi in order_data['items'] if
-                                        any(order_item['orderItemExternalId'] == roi['orderItemId'] and
-                                            order_item['isDraftReturnable'] is False and
-                                            roi["status"] == 540 and len(roi["returnInfo"]) >= 1
-                                            for order_item in refundable_items)]
-
+            matches_refunded_items = [roi for roi in order_data['items'] for order_item in refundable_items
+                                      if order_item['orderItemExternalId'] == roi['orderItemId'] and
+                                      roi["status"] == 540 and
+                                      len(roi["returnInfo"]) >= 1 and
+                                      roi.get("returnInfo")[-1].get("returnStatus") != 2]
             for orderitem in matches_refunded_items:
                 refund_status, easy_return_code = self._get_refund_status(orderitem.get("returnInfo", []))
                 cancellation_requests = {
@@ -398,10 +397,10 @@ class ShopihqOrderService(object):
                     "order_item": orderitem.get("orderItemId", None)
                 }
 
-            for orderitem in orderitem_set:
-                if orderitem["id"] == cancellation_requests.get("order_item"):
-                    orderitem["active_cancellation_request"] = cancellation_requests
-                    orderitem["cancellationrequest_set"].append(cancellation_requests)
+                for orderitem_set_item in orderitem_set:
+                    if orderitem_set_item["id"] == cancellation_requests.get("order_item"):
+                        orderitem_set_item["active_cancellation_request"] = cancellation_requests
+                        orderitem_set_item["cancellationrequest_set"].append(cancellation_requests)
 
         return orderitem_set
 
