@@ -320,9 +320,11 @@ class ShopihqOrderService(object):
             order_data = [order_data]
         order_data = order_data[0]
         order_number = order_data.get("orderId", "")
-
         orderitem_refund_status_check = any(orderitem["status"] == 540 and len(orderitem["returnInfo"]) >= 1
+                                            and any(return_info.get("returnStatus") != 2
+                                                    for return_info in orderitem.get("returnInfo", []))
                                             for orderitem in order_data["items"])
+
         cancellation_requests = {}
         orderitem_set = [{
             "id": orderitem["orderItemId"],
@@ -372,14 +374,17 @@ class ShopihqOrderService(object):
             response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
             response_dict = json.loads(response.text)
             refundable_items = response_dict.get('data')
+            orderitem_set_map = {item["id"]: item for item in orderitem_set}
+            grouped_return_info = {}
 
-            matches_refunded_items = [roi for roi in order_data['items'] for order_item in refundable_items
-                                      if order_item['orderItemExternalId'] == roi['orderItemId'] and
-                                      roi["status"] == 540 and
-                                      len(roi["returnInfo"]) >= 1 and
-                                      roi.get("returnInfo")[-1].get("returnStatus") != 2]
-            for orderitem in matches_refunded_items:
-                refund_status, easy_return_code = self._get_refund_status(orderitem.get("returnInfo", []))
+            grouped_return_info = {
+                roi['orderItemId']: [info for info in roi.get("returnInfo", []) if info.get("returnStatus") != 2]
+                for roi in order_data['items']
+                if roi["status"] == 540 and any(info.get("returnStatus") != 2 for info in roi.get("returnInfo", []))
+            }
+
+            for order_item_id, return_info_list in grouped_return_info.items():
+                refund_status, easy_return_code = self._get_refund_status(return_info_list)
                 cancellation_requests = {
                     "cancellation_type": {
                         "value": "refund",
@@ -394,13 +399,13 @@ class ShopihqOrderService(object):
                     },
                     "description": "",
                     "reason": "",
-                    "order_item": orderitem.get("orderItemId", None)
+                    "order_item": order_item_id
                 }
 
-                for orderitem_set_item in orderitem_set:
-                    if orderitem_set_item["id"] == cancellation_requests.get("order_item"):
-                        orderitem_set_item["active_cancellation_request"] = cancellation_requests
-                        orderitem_set_item["cancellationrequest_set"].append(cancellation_requests)
+                if order_item_id in orderitem_set_map:
+                    orderitem_set_item = orderitem_set_map[order_item_id]
+                    orderitem_set_item["active_cancellation_request"] = cancellation_requests
+                    orderitem_set_item.setdefault("cancellationrequest_set", []).append(cancellation_requests)
 
         return orderitem_set
 
@@ -429,8 +434,9 @@ class ShopihqOrderService(object):
         else:
             return None
 
-    def _get_refund_status(self, refundable_item):
-        last_item = refundable_item[-1]
+    def _get_refund_status(self, return_info):
+        sorted_data = sorted(return_info, key=lambda x: x['returnStatus'])
+        last_item = sorted_data[-1]
 
         if last_item.get("returnStatus") == 2:
             refund_status = ""
@@ -442,4 +448,3 @@ class ShopihqOrderService(object):
             refund_status = "Waiting"
             easy_return_code = last_item.get("shipmentCode", "")
         return refund_status, easy_return_code
-
