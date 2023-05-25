@@ -162,7 +162,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": res["items"][0].get("shipment", {}).get("labelUrl", None),
+                "tracking_url": res["items"][0].get("shipment", {}).get("trackingLink", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
                 "amount": res["totalPrice"],
@@ -295,7 +295,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": res["items"][0].get("shipment", {}).get("labelUrl", None),
+                "tracking_url": res["items"][0].get("shipment", {}).get("trackingLink", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
                 "amount": res["totalPrice"],
@@ -356,7 +356,7 @@ class ShopihqOrderService(object):
                 "name": None,
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
-            "tracking_url": orderitem.get("shipment", {}).get("labelUrl", None),
+            "tracking_url": orderitem.get("shipment", {}).get("trackingLink", None),
             "tracking_number": orderitem.get("invoiceNumber", None),
             "price": orderitem["price"],
             "tax_rate": orderitem["taxRate"]
