@@ -8,7 +8,8 @@ class ShopihqCancelService(object):
     auth = BasicAuthUtils()
 
     def __init__(self, username, password):
-        self.headers = {"Content-Type": "application/json", "Authorization": self.auth.basic_auth(username=username, password=password)}
+        self.headers = {"Content-Type": "application/json",
+                        "Authorization": self.auth.basic_auth(username=username, password=password)}
 
     def is_cancellable(self, order_number):
         """
@@ -26,8 +27,15 @@ class ShopihqCancelService(object):
         :param request:
         :return:
         """
+        order_item_list = request["orderItems"]
+        orderitem_id_list = [str(orderitem.get("orderItemId","")) for orderitem in order_item_list]
+        payload = {
+            "orderId": request.get("orderId"),
+            "orderItemIds":  orderitem_id_list
+        }
+
         path = get_url_with_endpoint('/Return/isDraftReturnable')
-        response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
+        response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
         return response
 
     def cancel_order(self, request):
@@ -71,21 +79,29 @@ class ShopihqCancelService(object):
                 return_payload["orderItemList"].append(order_item_payload)
 
         if cancel_payload["orderItems"]:
-            path = get_url_with_endpoint('/Order/cancelOrder')
-            response = requests.post(url=path, headers=self.headers, json=cancel_payload)
-            return response
+            response = self.is_cancellable(order_number=order_id)
+            response_json = json.loads(response.content.decode())
+            data = response_json.get("data", {}).get("cancelableModel", [])
+            is_cancellable = all(cancellable_status.get("isCancelable", False) for cancellable_status in data
+                                for orderitem in order_items
+                                if cancellable_status.get("orderItemId", "") == orderitem.get("orderItemId", ""))
+
+            if is_cancellable:
+                path = get_url_with_endpoint('/Order/cancelOrder')
+                response = requests.post(url=path, headers=self.headers, json=cancel_payload)
+                return response
+            return {}
 
         if return_payload["orderItemList"]:
-            path = get_url_with_endpoint('/Return/createDraftReturnShipment')
-            response = requests.post(url=path, headers=self.headers, json=return_payload)
-            return response
+            response = self.is_draft_returnable(request=request_data)
+            response_json = json.loads(response.content.decode())
+            data = response_json.get("data")
+            is_returnable = all(draft_status.get("isDraftReturnable", False) for draft_status in data
+                                for orderitem in order_items
+                                if draft_status.get("orderItemExternalId") == orderitem.get("orderItemId", ""))
 
-    # def create_draft_return_shipment(self, request):
-    #     """
-    #     Method: POST
-    #     :param request:
-    #     :return:
-    #     """
-    #     path = get_url_with_endpoint('/Return/createDraftReturnShipment')
-    #     response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
-    #     return response
+            if is_returnable:
+                path = get_url_with_endpoint('/Return/createDraftReturnShipment')
+                response = requests.post(url=path, headers=self.headers, json=return_payload)
+                return response
+            return {}
