@@ -409,7 +409,7 @@ class ShopihqOrderService(object):
         num_refunded = sum(1 for oi in orderitem if oi['status'].get('value') == '600')
         num_remaining = num_items - num_canceled - num_delivered - num_refunded
 
-        if num_preparing >= 1 or (num_canceled + num_delivered + num_refunded):
+        if num_preparing >= (num_canceled + num_delivered + num_refunded):
             return {'value': '450', 'label': 'Hazırlanıyor'}
         elif num_canceled == num_items:
             return {'value': '100', 'label': 'İptal Edildi'}
