@@ -44,3 +44,13 @@ def get_order_status_mapping(order_data):
     if order_status not in state_mapping:
         return {}
     return state_mapping[order_status]
+
+
+@staticmethod
+def check_full_name_compatibility(full_name):
+    # Split the full name"
+    name_parts = full_name.split()
+    first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else ""
+    last_name = name_parts[-1] if name_parts else ""
+
+    return first_name, last_name

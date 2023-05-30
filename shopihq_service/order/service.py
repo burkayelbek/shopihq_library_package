@@ -2,7 +2,7 @@ import requests
 import json
 import re
 from urllib.parse import urlparse, urlencode, urlunparse
-from shopihq_service.utils import get_url_with_endpoint, get_order_status_mapping
+from shopihq_service.utils import get_url_with_endpoint, get_order_status_mapping, check_full_name_compatibility
 from shopihq_service.utils import BasicAuthUtils
 
 
@@ -90,6 +90,8 @@ class ShopihqOrderService(object):
         for res in parsed_json:
             orderitem_set = self._fill_orderitem_set(order_data=res),
             parent_status = self._get_parent_status(orderitem=orderitem_set[0])
+            first_name, last_name = check_full_name_compatibility(
+                full_name=res["items"][0].get("deliveryAddress", {})["fullName"])
             response_data = {
                 "id": res["orderId"],
                 "status": parent_status,
@@ -105,8 +107,8 @@ class ShopihqOrderService(object):
                     "pk": res["items"][0].get("deliveryAddress", {})["id"],
                     "email": res["items"][0].get("deliveryAddress", {})["email"],
                     "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
-                    "first_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[0],
-                    "last_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[1],
+                    "first_name": first_name,
+                    "last_name": last_name,
                     "country": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
                     },
