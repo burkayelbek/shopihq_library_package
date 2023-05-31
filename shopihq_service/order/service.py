@@ -137,8 +137,8 @@ class ShopihqOrderService(object):
                     "pk": res.get("billingAddress", {})["id"],
                     "email": res.get("billingAddress", {})["email"],
                     "phone_number": res.get("billingAddress", {})["phone"],
-                    "first_name": res.get("billingAddress", {})["fullName"].split()[0],
-                    "last_name": res.get("billingAddress", {})["fullName"].split()[1],
+                    "first_name": first_name,
+                    "last_name": last_name,
                     "country": {
                         "name": res.get("billingAddress", {}).get("country", "")
                     },
@@ -223,6 +223,8 @@ class ShopihqOrderService(object):
         parsed_json = response_json.get("data", {}).get("results", [])
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
+        first_name, last_name = check_full_name_compatibility(full_name=parsed_json[0]["items"][0].get("deliveryAddress", {})["fullName"])
+
 
         for res in parsed_json:
             response_data = {
@@ -240,8 +242,8 @@ class ShopihqOrderService(object):
                     "pk": res["items"][0].get("deliveryAddress", {})["id"],
                     "email": res["items"][0].get("deliveryAddress", {})["email"],
                     "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
-                    "first_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[0],
-                    "last_name": res["items"][0].get("deliveryAddress", {})["fullName"].split()[1],
+                    "first_name": first_name,
+                    "last_name": last_name,
                     "country": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
                     },
@@ -270,8 +272,8 @@ class ShopihqOrderService(object):
                     "pk": res.get("billingAddress", {})["id"],
                     "email": res.get("billingAddress", {})["email"],
                     "phone_number": res.get("billingAddress", {})["phone"],
-                    "first_name": res.get("billingAddress", {})["fullName"].split()[0],
-                    "last_name": res.get("billingAddress", {})["fullName"].split()[1],
+                    "first_name": first_name,
+                    "last_name": last_name,
                     "country": {
                         "name": res.get("billingAddress", {}).get("country", "")
                     },
