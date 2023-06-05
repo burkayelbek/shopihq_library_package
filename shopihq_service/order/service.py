@@ -90,8 +90,8 @@ class ShopihqOrderService(object):
         for res in parsed_json:
             orderitem_set = self._fill_orderitem_set(order_data=res),
             parent_status = self._get_parent_status(orderitem=orderitem_set[0])
-            first_name, last_name = check_full_name_compatibility(
-                full_name=res["items"][0].get("deliveryAddress", {})["fullName"])
+            first_name, last_name = check_full_name_compatibility(full_name=res.get("billingModel", {})["name"])
+
             response_data = {
                 "id": res["orderId"],
                 "status": parent_status,
@@ -223,8 +223,7 @@ class ShopihqOrderService(object):
         parsed_json = response_json.get("data", {}).get("results", [])
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
-        first_name, last_name = check_full_name_compatibility(full_name=parsed_json[0]["items"][0].get("deliveryAddress", {})["fullName"])
-
+        first_name, last_name = check_full_name_compatibility(full_name=parsed_json[0].get("billingModel", {})["name"])
 
         for res in parsed_json:
             response_data = {
