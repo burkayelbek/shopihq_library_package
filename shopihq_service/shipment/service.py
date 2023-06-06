@@ -16,6 +16,6 @@ class ShopihqShipmentService(object):
         :param request:
         :return:
         """
-        path = get_url_with_endpoint('/Shipment/availability')
+        path = get_url_with_endpoint('Shipment/availability')
         response = requests.post(url=path, headers=self.headers, data=json.dumps(request.data))
         return response

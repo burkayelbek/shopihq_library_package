@@ -17,8 +17,13 @@ class ShopihqCancelService(object):
         :param order_number:
         :return:
         """
-        path = get_url_with_endpoint(f'/Order/isCancelable/{order_number}')
+        path = get_url_with_endpoint(f'Order/isCancelable/{order_number}')
         response = requests.get(url=path, headers=self.headers)
+        if response.status_code != 200:
+            response_error = requests.Response()
+            response_error.status_code = response.status_code
+            response_error._content = response
+            return response_error
         return response
 
     def is_draft_returnable(self, request):
@@ -28,14 +33,19 @@ class ShopihqCancelService(object):
         :return:
         """
         order_item_list = request["orderItems"]
-        orderitem_id_list = [str(orderitem.get("orderItemId","")) for orderitem in order_item_list]
+        orderitem_id_list = [str(orderitem.get("orderItemId", "")) for orderitem in order_item_list]
         payload = {
             "orderId": request.get("orderId"),
-            "orderItemIds":  orderitem_id_list
+            "orderItemIds": orderitem_id_list
         }
 
-        path = get_url_with_endpoint('/Return/isDraftReturnable')
+        path = get_url_with_endpoint('Return/isDraftReturnable')
         response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
+        if response.status_code != 200:
+            response_error = requests.Response()
+            response_error.status_code = response.status_code
+            response_error._content = response
+            return response_error
         return response
 
     def cancel_order(self, request):
@@ -83,8 +93,8 @@ class ShopihqCancelService(object):
             response_json = json.loads(response.content.decode())
             data = response_json.get("data", {}).get("cancelableModel", [])
             is_cancellable = all(cancellable_status.get("isCancelable", False) for cancellable_status in data
-                                for orderitem in order_items
-                                if cancellable_status.get("orderItemId", "") == orderitem.get("orderItemId", ""))
+                                 for orderitem in order_items
+                                 if cancellable_status.get("orderItemId", "") == orderitem.get("orderItemId", ""))
 
             if is_cancellable:
                 path = get_url_with_endpoint('/Order/cancelOrder')

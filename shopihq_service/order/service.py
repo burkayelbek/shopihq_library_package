@@ -21,7 +21,7 @@ class ShopihqOrderService(object):
         :return:
         """
         data = []
-        path = get_url_with_endpoint('/Order/reasons')
+        path = get_url_with_endpoint('Order/reasons')
         website_url = request.META.get('HTTP_REFERER')
         match = re.search(r'/en/|/en', website_url)
         if match:
@@ -73,7 +73,7 @@ class ShopihqOrderService(object):
 
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
-            f'/Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
+            f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
 
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
 
@@ -212,7 +212,7 @@ class ShopihqOrderService(object):
         :return:
         """
         response_data = {}
-        path = get_url_with_endpoint(f'/Order/search?orderIds={order_id}')
+        path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
         response = requests.get(url=path, params=request.query_params, headers=self.headers)
         if response.status_code != 200:
             response_error = requests.Response()
@@ -429,6 +429,11 @@ class ShopihqOrderService(object):
     def _get_refund_status(self, return_info):
         sorted_data = sorted(return_info, key=lambda x: x['returnStatus'])
         last_item = sorted_data[-1]
+
+        if not sorted_data:
+            refund_status = ""
+            easy_return_code = ""
+            return refund_status, easy_return_code
 
         if last_item.get("returnStatus") == 2:
             refund_status = ""
