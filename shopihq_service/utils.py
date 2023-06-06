@@ -46,7 +46,6 @@ def get_order_status_mapping(order_data):
     return state_mapping[order_status]
 
 
-@staticmethod
 def check_full_name_compatibility(full_name):
     # Split the full name"
     name_parts = full_name.split()
