@@ -1,7 +1,8 @@
 import requests
 import json
-from shopihq_service.utils import get_url_with_endpoint
-from shopihq_service.utils import BasicAuthUtils
+from shopihq_service.helpers.utils import get_url_with_endpoint
+from shopihq_service.helpers.utils import BasicAuthUtils
+from shopihq_service.helpers.custom_exceptions import handle_request_exception
 
 
 class ShopihqCancelService(object):
@@ -18,13 +19,13 @@ class ShopihqCancelService(object):
         :return:
         """
         path = get_url_with_endpoint(f'Order/isCancelable/{order_number}')
-        response = requests.get(url=path, headers=self.headers)
-        if response.status_code != 200:
-            response_error = requests.Response()
-            response_error.status_code = response.status_code
-            response_error._content = response
-            return response_error
-        return response
+        try:
+            response = requests.get(url=path, headers=self.headers)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            err = handle_request_exception(e)
+            return err
 
     def is_draft_returnable(self, request):
         """
@@ -38,15 +39,15 @@ class ShopihqCancelService(object):
             "orderId": request.get("orderId"),
             "orderItemIds": orderitem_id_list
         }
-
         path = get_url_with_endpoint('Return/isDraftReturnable')
-        response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
-        if response.status_code != 200:
-            response_error = requests.Response()
-            response_error.status_code = response.status_code
-            response_error._content = response
-            return response_error
-        return response
+        try:
+            response = requests.post(url=path, headers=self.headers, data=json.dumps(payload))
+            response.raise_for_status()
+            return response
+
+        except requests.exceptions.RequestException as e:
+            err = handle_request_exception(e)
+            return err
 
     def cancel_order(self, request):
         """

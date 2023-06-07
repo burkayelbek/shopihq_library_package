@@ -2,8 +2,9 @@ import requests
 import json
 import re
 from urllib.parse import urlparse, urlencode, urlunparse
-from shopihq_service.utils import get_url_with_endpoint, get_order_status_mapping, check_full_name_compatibility
-from shopihq_service.utils import BasicAuthUtils
+from shopihq_service.helpers.utils import get_url_with_endpoint, get_order_status_mapping, check_full_name_compatibility
+from shopihq_service.helpers.utils import BasicAuthUtils
+from shopihq_service.helpers.custom_exceptions import handle_request_exception
 
 
 class ShopihqOrderService(object):
@@ -74,18 +75,20 @@ class ShopihqOrderService(object):
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
             f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
+        try:
+            response = requests.get(url=path, params=request.query_params, headers=self.headers, timeout=20)
 
-        response = requests.get(url=path, params=request.query_params, headers=self.headers)
-
-        if response.status_code != 200:
-            response_error = requests.Response()
-            response_error.status_code = response.status_code
-            response_error._content = response
-            return response_error
+        except requests.exceptions.RequestException as e:
+            return handle_request_exception(e)
 
         response_json = json.loads(response.content.decode())
         count = response_json.get("data", {})["totalCount"]
         parsed_json = response_json.get("data", {}).get("results", [])
+
+        if not parsed_json:
+            response.status_code = response.status_code
+            response.json = lambda: {}
+            return response
 
         for res in parsed_json:
             orderitem_set = self._fill_orderitem_set(order_data=res),
@@ -213,14 +216,21 @@ class ShopihqOrderService(object):
         """
         response_data = {}
         path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
-        response = requests.get(url=path, params=request.query_params, headers=self.headers)
-        if response.status_code != 200:
-            response_error = requests.Response()
-            response_error.status_code = response.status_code
-            response_error._content = response
-            return response_error
+        try:
+            response = requests.get(url=path, params=request.query_params, headers=self.headers, timeout=20)
+            response.raise_for_status()
+
+        except (requests.exceptions.RequestException) as e:
+            return handle_request_exception(e)
+
         response_json = json.loads(response.content.decode())
         parsed_json = response_json.get("data", {}).get("results", [])
+
+        if not parsed_json:
+            response.status_code = response.status_code
+            response.json = lambda: {}
+            return response
+
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
         first_name, last_name = check_full_name_compatibility(full_name=parsed_json[0].get("billingModel", {})["name"])

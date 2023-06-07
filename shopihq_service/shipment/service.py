@@ -1,7 +1,7 @@
 import requests
 import json
-from shopihq_service.utils import get_url_with_endpoint
-from shopihq_service.utils import BasicAuthUtils
+from shopihq_service.helpers.utils import get_url_with_endpoint
+from shopihq_service.helpers.utils import BasicAuthUtils
 
 
 class ShopihqShipmentService(object):
