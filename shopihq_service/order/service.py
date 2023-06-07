@@ -220,7 +220,7 @@ class ShopihqOrderService(object):
             response = requests.get(url=path, params=request.query_params, headers=self.headers)
             response.raise_for_status()
 
-        except (requests.exceptions.RequestException) as e:
+        except requests.exceptions.RequestException as e:
             return handle_request_exception(e)
 
         response_json = json.loads(response.content.decode())
