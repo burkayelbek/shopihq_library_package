@@ -76,7 +76,7 @@ class ShopihqOrderService(object):
         path = get_url_with_endpoint(
             f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
         try:
-            response = requests.get(url=path, params=request.query_params, headers=self.headers, timeout=20)
+            response = requests.get(url=path, params=request.query_params, headers=self.headers)
 
         except requests.exceptions.RequestException as e:
             return handle_request_exception(e)
@@ -217,7 +217,7 @@ class ShopihqOrderService(object):
         response_data = {}
         path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
         try:
-            response = requests.get(url=path, params=request.query_params, headers=self.headers, timeout=20)
+            response = requests.get(url=path, params=request.query_params, headers=self.headers)
             response.raise_for_status()
 
         except (requests.exceptions.RequestException) as e:
