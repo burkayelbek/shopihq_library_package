@@ -48,8 +48,12 @@ def get_order_status_mapping(order_data):
 
 def check_full_name_compatibility(full_name):
     # Split the full name"
-    name_parts = full_name.split()
-    first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else ""
-    last_name = name_parts[-1] if name_parts else ""
+    if full_name is not None:
+        name_parts = full_name.split()
+        first_name = " ".join(name_parts[:-1]) if len(name_parts) > 1 else ""
+        last_name = name_parts[-1] if name_parts else ""
+    else:
+        first_name = ""
+        last_name = ""
 
     return first_name, last_name

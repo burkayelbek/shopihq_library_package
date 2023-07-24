@@ -82,7 +82,7 @@ class ShopihqOrderService(object):
             return handle_request_exception(e)
 
         response_json = json.loads(response.content.decode())
-        count = response_json.get("data", {})["totalCount"]
+        count = response_json.get("data", {}).get("totalCount", 0)
         parsed_json = response_json.get("data", {}).get("results", [])
 
         if not parsed_json:
@@ -93,7 +93,8 @@ class ShopihqOrderService(object):
         for res in parsed_json:
             orderitem_set = self._fill_orderitem_set(order_data=res),
             parent_status = self._get_parent_status(orderitem=orderitem_set[0])
-            first_name, last_name = check_full_name_compatibility(full_name=res.get("billingModel", {})["name"])
+            first_name, last_name = check_full_name_compatibility(
+                full_name=res.get("billingAddress", {}).get("fullName", ""))
 
             response_data = {
                 "id": res["orderId"],
@@ -107,9 +108,9 @@ class ShopihqOrderService(object):
                 "is_cancellable": None,
                 "is_refundable": None,
                 "shipping_address": {
-                    "pk": res["items"][0].get("deliveryAddress", {})["id"],
-                    "email": res["items"][0].get("deliveryAddress", {})["email"],
-                    "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
+                    "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
+                    "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
+                    "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
@@ -118,7 +119,7 @@ class ShopihqOrderService(object):
                     "city": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
                     },
-                    "line": res["items"][0].get("deliveryAddress", {})["details"],
+                    "line": res["items"][0].get("deliveryAddress", {}).get("details",""),
                     "title": None,
                     "township": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
@@ -137,9 +138,9 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res.get("billingAddress", {})["id"],
-                    "email": res.get("billingAddress", {})["email"],
-                    "phone_number": res.get("billingAddress", {})["phone"],
+                    "pk": res.get("billingAddress", {}).get("id", ""),
+                    "email": res.get("billingAddress", {}).get("email",""),
+                    "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
@@ -148,7 +149,7 @@ class ShopihqOrderService(object):
                     "city": {
                         "name": res.get("billingAddress", {}).get("city", "").upper()
                     },
-                    "line": res.get("billingAddress", {})["details"],
+                    "line": res.get("billingAddress", {}).get("details", ""),
                     "title": None,
                     "township": {
                         "name": res.get("billingAddress", {}).get("town", "")
@@ -233,7 +234,8 @@ class ShopihqOrderService(object):
 
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
-        first_name, last_name = check_full_name_compatibility(full_name=parsed_json[0].get("billingModel", {})["name"])
+        first_name, last_name = check_full_name_compatibility(
+            full_name=parsed_json[0].get("billingAddress", {}).get("fullName", ""))
 
         for res in parsed_json:
             response_data = {
@@ -248,9 +250,9 @@ class ShopihqOrderService(object):
                 "is_cancellable": None,
                 "is_refundable": None,
                 "shipping_address": {
-                    "pk": res["items"][0].get("deliveryAddress", {})["id"],
-                    "email": res["items"][0].get("deliveryAddress", {})["email"],
-                    "phone_number": res["items"][0].get("deliveryAddress", {})["phone"],
+                    "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
+                    "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
+                    "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
@@ -259,7 +261,7 @@ class ShopihqOrderService(object):
                     "city": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
                     },
-                    "line": res["items"][0].get("deliveryAddress", {})["details"],
+                    "line": res["items"][0].get("deliveryAddress", {}).get("details", ""),
                     "title": None,
                     "township": {
                         "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
@@ -278,9 +280,9 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res.get("billingAddress", {})["id"],
-                    "email": res.get("billingAddress", {})["email"],
-                    "phone_number": res.get("billingAddress", {})["phone"],
+                    "pk": res.get("billingAddress", {}).get("id", ""),
+                    "email": res.get("billingAddress", {}).get("email", ""),
+                    "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
@@ -347,10 +349,10 @@ class ShopihqOrderService(object):
                 "label": "TL"
             },
             "product": {
-                "pk": orderitem["orderItemId"],
-                "sku": orderitem["productSku"],
-                "base_code": orderitem["productBarcode"],
-                "name": orderitem["productName"],
+                "pk": orderitem.get("orderItemId", ""),
+                "sku": orderitem.get("productSku", ""),
+                "base_code": orderitem.get("productBarcode", ""),
+                "name": orderitem.get("productName", ""),
                 "image": orderitem.get("productUrl", None),
                 "absolute_url": "#",
                 "attributes": {
