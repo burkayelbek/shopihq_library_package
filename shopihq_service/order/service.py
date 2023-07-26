@@ -114,17 +114,21 @@ class ShopihqOrderService(object):
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
                     },
                     "city": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
                     },
-                    "line": res["items"][0].get("deliveryAddress", {}).get("details",""),
-                    "title": None,
+                    "line": res["items"][0].get("deliveryAddress", {}).get("details", ""),
+                    "title": "",
                     "township": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
                     },
                     "district": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
                     },
                     "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
@@ -139,22 +143,26 @@ class ShopihqOrderService(object):
                 },
                 "billing_address": {
                     "pk": res.get("billingAddress", {}).get("id", ""),
-                    "email": res.get("billingAddress", {}).get("email",""),
+                    "email": res.get("billingAddress", {}).get("email", ""),
                     "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("country", "")
                     },
                     "city": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("city", "").upper()
                     },
                     "line": res.get("billingAddress", {}).get("details", ""),
-                    "title": None,
+                    "title": "",
                     "township": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("town", "")
                     },
                     "district": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("district", "")
                     },
                     "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
@@ -171,9 +179,9 @@ class ShopihqOrderService(object):
                 "tracking_url": res["items"][0].get("shipment", {}).get("trackingLink", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
-                "amount": res["totalPrice"],
-                "discount_amount": None,
-                "shipping_amount": res["shippingCost"],
+                "amount": str(res["totalPrice"]),
+                "discount_amount": "",
+                "shipping_amount": str(res["shippingCost"]),
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
                 "amount_without_discount": res.get("subTotalPrice", 0),
@@ -256,17 +264,21 @@ class ShopihqOrderService(object):
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("country", "")
                     },
                     "city": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
                     },
                     "line": res["items"][0].get("deliveryAddress", {}).get("details", ""),
-                    "title": None,
+                    "title": "",
                     "township": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
                     },
                     "district": {
+                        "pk": 0,
                         "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
                     },
                     "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
@@ -286,17 +298,21 @@ class ShopihqOrderService(object):
                     "first_name": first_name,
                     "last_name": last_name,
                     "country": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("country", "")
                     },
                     "city": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("city", "").upper()
                     },
                     "line": res.get("billingAddress", {})["details"],
-                    "title": None,
+                    "title": "",
                     "township": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("town", "")
                     },
                     "district": {
+                        "pk": 0,
                         "name": res.get("billingAddress", {}).get("district", "")
                     },
                     "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
@@ -313,9 +329,9 @@ class ShopihqOrderService(object):
                 "tracking_url": res["items"][0].get("shipment", {}).get("trackingLink", None),
                 "created_date": res["createdOn"],
                 "number": res["orderId"],
-                "amount": res["totalPrice"],
-                "discount_amount": None,
-                "shipping_amount": res["shippingCost"],
+                "amount": str(res["totalPrice"]),
+                "discount_amount": "",
+                "shipping_amount": str(res["shippingCost"]),
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
                 "amount_without_discount": res.get("subTotalPrice", 0),
@@ -342,25 +358,35 @@ class ShopihqOrderService(object):
 
         cancellation_requests = {}
         orderitem_set = [{
-            "id": orderitem["orderItemId"],
+            "id": int(orderitem.get("orderItemId")),
             "status": get_order_status_mapping(orderitem),
             "price_currency": {
                 "value": "try",
                 "label": "TL"
             },
             "product": {
-                "pk": orderitem.get("orderItemId", ""),
+                "pk": int(orderitem.get("orderItemId")),
                 "sku": orderitem.get("productSku", ""),
                 "base_code": orderitem.get("productBarcode", ""),
                 "name": orderitem.get("productName", ""),
                 "image": orderitem.get("productUrl", None),
                 "absolute_url": "#",
                 "attributes": {
-                    "integration_sap_COLOR": orderitem.get("productColor", None),
-                    "integration_sap_SIZE1": orderitem.get("productSize", None),
-                    "integration_sap_BRAND": orderitem.get("productBrand", None),
+                    "integration_sap_COLOR": orderitem.get("productColor", ""),
+                    "integration_sap_SIZE1": orderitem.get("productSize", ""),
+                    "integration_sap_BRAND": orderitem.get("productBrand", ""),
                 },
-                "attributes_kwargs": {}
+                "attributes_kwargs": {
+                    "integration_sap_COLOR": {
+                        "label": orderitem.get("productColor", "")
+                    },
+                    "integration_sap_SIZE1": {
+                        "label": orderitem.get("productSize", "")
+                    },
+                    "integration_sap_BRAND": {
+                        "label": orderitem.get("productBrand", "")
+                    }
+                }
             },
             "is_cancelled": True if orderitem["status"] == 50 or orderitem["isRefunded"] == True else False,
             "is_cancellable": orderitem["isCancelable"],
@@ -373,8 +399,8 @@ class ShopihqOrderService(object):
             },
             "tracking_url": orderitem.get("shipment", {}).get("trackingLink", None),
             "tracking_number": orderitem.get("invoiceNumber", None),
-            "price": orderitem["price"],
-            "tax_rate": orderitem["taxRate"]
+            "price": str(orderitem["price"]),
+            "tax_rate": str(orderitem["taxRate"])
         } for orderitem in order_data["items"]]
 
         if orderitem_refund_status_check:
