@@ -254,6 +254,7 @@ class ShopihqOrderService(object):
                     "value": "try",
                     "label": "TL",
                 },
+                "orderitem_set": orderitem_set,
                 "is_cancelled": True if res.get("items", [])[0].get("status") == 50 or res.get("items", [])[0].get(
                     "isRefunded") == True else False,
                 "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
