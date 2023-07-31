@@ -120,17 +120,21 @@ class ShopihqOrderService(object):
                     },
                     "city": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
+                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper(),
+                        "country": 0
                     },
                     "line": res["items"][0].get("deliveryAddress", {}).get("details", ""),
                     "title": "",
                     "township": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("town", ""),
+                        "city": 0
                     },
                     "district": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("district", ""),
+                        "township": 0,
+                        "city": 0
                     },
                     "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
                     "company_name": "",
@@ -143,7 +147,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res.get("billingAddress", {}).get("id", ""),
+                    "pk": int(res.get("billingAddress", {}).get("id", "")),
                     "email": res.get("billingAddress", {}).get("email", ""),
                     "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -154,17 +158,21 @@ class ShopihqOrderService(object):
                     },
                     "city": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("city", "").upper()
+                        "name": res.get("billingAddress", {}).get("city", "").upper(),
+                        "country": 0
                     },
                     "line": res.get("billingAddress", {}).get("details", ""),
                     "title": "",
                     "township": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("town", "")
+                        "name": res.get("billingAddress", {}).get("town", ""),
+                        "city": 0
                     },
                     "district": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("district", "")
+                        "name": res.get("billingAddress", {}).get("district", ""),
+                        "township": 0,
+                        "city": 0
                     },
                     "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
                     "company_name": "",
@@ -271,17 +279,21 @@ class ShopihqOrderService(object):
                     },
                     "city": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper()
+                        "name": res["items"][0].get("deliveryAddress", {}).get("city", "").upper(),
+                        "country": 0
                     },
                     "line": res["items"][0].get("deliveryAddress", {}).get("details", ""),
                     "title": "",
                     "township": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("town", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("town", ""),
+                        "city": 0
                     },
                     "district": {
                         "pk": 0,
-                        "name": res["items"][0].get("deliveryAddress", {}).get("district", "")
+                        "name": res["items"][0].get("deliveryAddress", {}).get("district", ""),
+                        "township": 0,
+                        "city": 0
                     },
                     "postcode": res["items"][0].get("deliveryAddress", {}).get("zipPostalCode", ""),
                     "company_name": "",
@@ -294,7 +306,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": res.get("billingAddress", {}).get("id", ""),
+                    "pk": int(res.get("billingAddress", {}).get("id", "")),
                     "email": res.get("billingAddress", {}).get("email", ""),
                     "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -305,17 +317,21 @@ class ShopihqOrderService(object):
                     },
                     "city": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("city", "").upper()
+                        "name": res.get("billingAddress", {}).get("city", "").upper(),
+                        "country": 0
                     },
                     "line": res.get("billingAddress", {})["details"],
                     "title": "",
                     "township": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("town", "")
+                        "name": res.get("billingAddress", {}).get("town", ""),
+                        "city": 0
                     },
                     "district": {
                         "pk": 0,
-                        "name": res.get("billingAddress", {}).get("district", "")
+                        "name": res.get("billingAddress", {}).get("district", ""),
+                        "township": 0,
+                        "city": 0
                     },
                     "postcode": res.get("billingAddress", {}).get("zipPostalCode", ""),
                     "company_name": "",
