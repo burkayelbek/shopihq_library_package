@@ -109,7 +109,7 @@ class ShopihqOrderService(object):
                 "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
                 "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
-                    "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
+                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", "")),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
                     "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -260,7 +260,7 @@ class ShopihqOrderService(object):
                 "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
                 "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
-                    "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
+                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", "")),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
                     "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -406,7 +406,7 @@ class ShopihqOrderService(object):
         } for orderitem in order_data["items"]]
 
         if orderitem_refund_status_check:
-            orderitem_set_map = {item["id"]: item for item in orderitem_set}
+            orderitem_set_map = {str(item["id"]): item for item in orderitem_set}
             grouped_return_info = {}
 
             grouped_return_info = {
