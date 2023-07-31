@@ -187,7 +187,7 @@ class ShopihqOrderService(object):
                 "amount_without_discount": res.get("subTotalPrice", 0),
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
-                    "name": res["payments"][0].get("paymentType", None)
+                    "name": "Kredi Kartı"
                 }
             }
             data.append(response_data)
@@ -337,7 +337,7 @@ class ShopihqOrderService(object):
                 "amount_without_discount": res.get("subTotalPrice", 0),
                 "installment_count": res["payments"][0].get("installmentCount", None),
                 "payment_option": {
-                    "name": res["payments"][0].get("paymentType", None)
+                    "name": "Kredi Kartı"
                 }
             }
 
