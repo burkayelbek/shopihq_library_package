@@ -398,7 +398,7 @@ class ShopihqOrderService(object):
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
             "tracking_url": orderitem.get("shipment", {}).get("trackingUrl", None),
-            "tracking_number": orderitem.get("invoiceNumber", None),
+            "tracking_number": orderitem.get("shipment", {}).get("trackingNumber", None),
             "price": str(orderitem["price"]),
             "tax_rate": str(orderitem["taxRate"])
         } for orderitem in order_data["items"]]
