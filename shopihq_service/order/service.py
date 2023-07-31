@@ -104,9 +104,10 @@ class ShopihqOrderService(object):
                     "label": "TL",
                 },
                 "orderitem_set": orderitem_set[0],
-                "is_cancelled": None,
-                "is_cancellable": None,
-                "is_refundable": None,
+                "is_cancelled": True if res.get("items", [])[0].get("status") == 50 or res.get("items", [])[0].get(
+                    "isRefunded") == True else False,
+                "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
+                "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
                     "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
@@ -253,10 +254,10 @@ class ShopihqOrderService(object):
                     "value": "try",
                     "label": "TL",
                 },
-                "orderitem_set": orderitem_set,
-                "is_cancelled": None,
-                "is_cancellable": None,
-                "is_refundable": None,
+                "is_cancelled": True if res.get("items", [])[0].get("status") == 50 or res.get("items", [])[0].get(
+                    "isRefunded") == True else False,
+                "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
+                "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
                     "pk": res["items"][0].get("deliveryAddress", {}).get("id", ""),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
