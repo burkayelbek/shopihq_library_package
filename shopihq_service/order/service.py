@@ -2,8 +2,13 @@ import requests
 import json
 import re
 from urllib.parse import urlparse, urlencode, urlunparse
-from shopihq_service.helpers.utils import get_url_with_endpoint, get_order_status_mapping, check_full_name_compatibility
 from shopihq_service.helpers.utils import BasicAuthUtils
+from shopihq_service.helpers.utils import (
+    get_url_with_endpoint,
+    get_order_status_mapping,
+    check_full_name_compatibility,
+    convert_to_int_and_remove_prefix
+)
 from shopihq_service.helpers.custom_exceptions import handle_request_exception
 
 
@@ -97,7 +102,7 @@ class ShopihqOrderService(object):
                 full_name=res.get("billingAddress", {}).get("fullName", ""))
 
             response_data = {
-                "id": res["orderId"],
+                "id": convert_to_int_and_remove_prefix(res["orderId"]),
                 "status": parent_status,
                 "currency": {
                     "value": "try",
@@ -256,7 +261,7 @@ class ShopihqOrderService(object):
 
         for res in parsed_json:
             response_data = {
-                "id": res["orderId"],
+                "id": convert_to_int_and_remove_prefix(res["orderId"]),
                 "status": parent_status,
                 "currency": {
                     "value": "try",

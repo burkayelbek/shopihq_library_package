@@ -1,5 +1,6 @@
 import hashlib
 import base64
+import re
 from shopihq_service.settings import Settings as settings
 
 
@@ -57,3 +58,12 @@ def check_full_name_compatibility(full_name):
         last_name = ""
 
     return first_name, last_name
+
+
+def convert_to_int_and_remove_prefix(order_id_str):
+    # Use regular expression to remove any leading non-digit characters
+    order_id_digits = re.sub(r'^\D*', '', order_id_str)
+
+    # Convert the remaining digits to an integer
+    order_id = int(order_id_digits)
+    return order_id
