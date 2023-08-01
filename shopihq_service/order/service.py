@@ -28,7 +28,8 @@ class ShopihqOrderService(object):
         """
         data = []
         path = get_url_with_endpoint('Order/reasons')
-        website_url = request.META.get('HTTP_REFERER')
+        #website_url = request.META.get('HTTP_REFERER')
+        website_url = request.build_absolute_uri()
         match = re.search(r'/en/|/en', website_url)
         if match:
             # Website language is English
