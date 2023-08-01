@@ -19,19 +19,17 @@ class ShopihqOrderService(object):
         self.headers = {"Content-Type": "application/json",
                         "Authorization": self.auth.basic_auth(username=username, password=password)}
 
-    def get_reasons(self, request):
+    def get_reasons(self, request, lang_code):
         """
         Method: GET
+        :param lang_code:
         :param request: Ex: ?type=0&language=1
         : type=0 -> Cancel, type=1 -> Refund, language=0 -> Turkish, language=1 -> English
         :return:
         """
         data = []
         path = get_url_with_endpoint('Order/reasons')
-        #website_url = request.META.get('HTTP_REFERER')
-        website_url = request.build_absolute_uri()
-        match = re.search(r'/en/|/en', website_url)
-        if match:
+        if lang_code not in ["tr-tr", "tr", "tr-TR"]:
             # Website language is English
             language = 1
         else:
