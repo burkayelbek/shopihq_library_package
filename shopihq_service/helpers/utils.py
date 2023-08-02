@@ -29,7 +29,7 @@ def get_order_status_mapping(order_data):
         order_data = {order_data}
     order_status = order_data["status"]
 
-    refund_info_status = [orderitem_refund.get("returnStatus") for orderitem_refund in order_data["returnInfo"]]
+    refunded = any(return_info.get("returnStatus") == 635 for return_info in order_data.get("returnInfo", []))
     state_mapping = {
         210: {"value": "450", "label": "Hazırlanıyor"},
         240: {"value": "500", "label": "Kargolandı"},
@@ -40,7 +40,7 @@ def get_order_status_mapping(order_data):
         540: {"value": "550", "label": "Delivered"},
         50: {"value": "100", "label": "İptal Edildi"}
     }
-    if order_status == 540 and any(status == 635 for status in refund_info_status):
+    if order_status == 540 and refunded:
         return {"value": "600", "label": "İade edildi"}
     if order_status not in state_mapping:
         return {}

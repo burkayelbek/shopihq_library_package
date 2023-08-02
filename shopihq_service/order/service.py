@@ -462,27 +462,38 @@ class ShopihqOrderService(object):
         return orderitem_set
 
     def _get_parent_status(self, orderitem):
+        status_counts = {'100': 0, '450': 0, '500': 0, '550': 0, '600': 0}
+        status_labels = {
+            '100': 'İptal Edildi',
+            '450': 'Hazırlanıyor',
+            '500': 'Kargolandı',
+            '550': 'Teslim Edildi',
+            '600': 'İade Edildi'
+        }
+
         if not isinstance(orderitem, list):
             orderitem = [orderitem]
-        num_items = len(orderitem)
-        num_canceled = sum(1 for oi in orderitem if oi['status'].get('value') == '100')
-        num_delivered = sum(1 for oi in orderitem if oi['status'].get('value') == '550')
-        num_preparing = sum(1 for oi in orderitem if oi['status'].get('value') == '450')
-        num_shipped = sum(1 for oi in orderitem if oi['status'].get('value') == '500')
-        num_refunded = sum(1 for oi in orderitem if oi['status'].get('value') == '600')
-        num_remaining = num_items - num_canceled - num_delivered - num_refunded
 
-        if num_preparing >= (num_canceled + num_delivered + num_refunded) and num_preparing >= 1:
-            return {'value': '450', 'label': 'Hazırlanıyor'}
-        elif num_canceled == num_items:
-            return {'value': '100', 'label': 'İptal Edildi'}
-        elif num_delivered == num_items or (
-                num_canceled + num_delivered == num_items - num_remaining + num_refunded and num_preparing == num_remaining):
-            return {'value': '550', 'label': 'Teslim Edildi'}
-        elif num_shipped == num_items:
-            return {'value': '500', 'label': 'Kargolandı'}
-        elif num_refunded == num_items:
-            return {'value': '600', 'label': 'İade Edildi'}
+        for oi in orderitem:
+            status_value = oi['status'].get('value')
+            if status_value in status_counts:
+                status_counts[status_value] += 1
+
+        num_items = len(orderitem)
+        num_remaining = num_items - status_counts['100'] - status_counts['550'] - status_counts['600']
+
+        if status_counts['450'] >= num_items or status_counts['450'] >= 1:
+            return {'value': '450', 'label': status_labels['450']}
+        elif status_counts['100'] == num_items:
+            return {'value': '100', 'label': status_labels['100']}
+        elif status_counts['550'] == num_items or (
+                status_counts['100'] + status_counts['550'] == num_items - num_remaining + status_counts['600'] and
+                status_counts['450'] == num_remaining):
+            return {'value': '550', 'label': status_labels['550']}
+        elif status_counts['500'] == num_items:
+            return {'value': '500', 'label': status_labels['500']}
+        elif status_counts['600'] == num_items:
+            return {'value': '600', 'label': status_labels['600']}
         else:
             return None
 
