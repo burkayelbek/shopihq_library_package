@@ -372,6 +372,7 @@ class ShopihqOrderService(object):
         if not isinstance(order_data, list):
             order_data = [order_data]
         acceptable_refund_statuses = [425, 540]
+        not_acceptable_return_statuses = [2, 635]
         order_data = order_data[0]
         order_items = order_data.get("items", [])
         order_number = order_data.get("orderId", "")
@@ -379,7 +380,7 @@ class ShopihqOrderService(object):
             orderitem["status"] in acceptable_refund_statuses
             and len(orderitem["returnInfo"]) >= 1
             and not any(
-                return_info.get("returnStatus") in [2, 635]
+                return_info.get("returnStatus") in not_acceptable_return_statuses
                 for return_info in sorted(
                     orderitem.get("returnInfo", []), key=lambda x: x['returnStatus']
                 )[-1:]
@@ -387,7 +388,7 @@ class ShopihqOrderService(object):
             for orderitem in order_items
         )
 
-        cancellation_requests = {}
+        # cancellation_requests = {}
         orderitem_set = [{
             "id": int(orderitem.get("orderItemId")),
             "status": get_order_status_mapping(orderitem),
@@ -441,16 +442,15 @@ class ShopihqOrderService(object):
             grouped_return_info = {
                 order_item['orderItemId']: [
                     info for info in sorted(
-                        order_item.get("returnInfo", []), key=lambda x: x.get("some_sorting_criteria")
+                        order_item.get("returnInfo", []), key=lambda x: x['returnStatus']
                     )
-                    if info.get("returnStatus") not in [2, 635]
+                    if info.get("returnStatus") not in not_acceptable_return_statuses
                 ]
                 for order_item in order_items
                 if (
                         order_item["status"] in acceptable_refund_statuses
-                        and any(
-                    info.get("returnStatus") not in [2, 635] for info in order_item.get("returnInfo", [])
-                )
+                        and any(info.get("returnStatus") not in not_acceptable_return_statuses
+                                for info in order_item.get("returnInfo", []))
                 )
             }
 
