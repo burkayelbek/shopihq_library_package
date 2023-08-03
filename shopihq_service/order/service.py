@@ -371,9 +371,10 @@ class ShopihqOrderService(object):
     def _fill_orderitem_set(self, order_data):
         if not isinstance(order_data, list):
             order_data = [order_data]
+        acceptable_refund_statuses = [425, 540]
         order_data = order_data[0]
         order_number = order_data.get("orderId", "")
-        orderitem_refund_status_check = any(orderitem["status"] == 540 and len(orderitem["returnInfo"]) >= 1
+        orderitem_refund_status_check = any(orderitem["status"] in acceptable_refund_statuses and len(orderitem["returnInfo"]) >= 1
                                             and any(return_info.get("returnStatus") != 2
                                                     for return_info in orderitem.get("returnInfo", []))
                                             for orderitem in order_data["items"])
@@ -432,7 +433,7 @@ class ShopihqOrderService(object):
             grouped_return_info = {
                 roi['orderItemId']: [info for info in roi.get("returnInfo", []) if info.get("returnStatus") != 2]
                 for roi in order_data['items']
-                if roi["status"] == 540 and any(info.get("returnStatus") != 2 for info in roi.get("returnInfo", []))
+                if roi["status"] in acceptable_refund_statuses and any(info.get("returnStatus") != 2 for info in roi.get("returnInfo", []))
             }
 
             for order_item_id, return_info_list in grouped_return_info.items():
