@@ -457,6 +457,7 @@ class ShopihqOrderService(object):
             for order_item_id, return_info_list in grouped_return_info.items():
                 refund_status, easy_return_code = self._get_refund_status(return_info_list)
                 cancellation_requests = {
+                    "id": 0,
                     "cancellation_type": {
                         "value": "refund",
                         "label": "İade"
