@@ -40,7 +40,7 @@ def get_order_status_mapping(order_data):
         540: {"value": "550", "label": "Delivered"},
         50: {"value": "100", "label": "İptal Edildi"}
     }
-    if order_status == 540 and refunded:
+    if refunded:
         return {"value": "600", "label": "İade edildi"}
     if order_status not in state_mapping:
         return {}

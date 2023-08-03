@@ -373,11 +373,19 @@ class ShopihqOrderService(object):
             order_data = [order_data]
         acceptable_refund_statuses = [425, 540]
         order_data = order_data[0]
+        order_items = order_data.get("items", [])
         order_number = order_data.get("orderId", "")
-        orderitem_refund_status_check = any(orderitem["status"] in acceptable_refund_statuses and len(orderitem["returnInfo"]) >= 1
-                                            and any(return_info.get("returnStatus") != 2
-                                                    for return_info in orderitem.get("returnInfo", []))
-                                            for orderitem in order_data["items"])
+        orderitem_refund_status_check = any(
+            orderitem["status"] in acceptable_refund_statuses
+            and len(orderitem["returnInfo"]) >= 1
+            and not any(
+                return_info.get("returnStatus") in [2, 635]
+                for return_info in sorted(
+                    orderitem.get("returnInfo", []), key=lambda x: x['returnStatus']
+                )[-1:]
+            )
+            for orderitem in order_items
+        )
 
         cancellation_requests = {}
         orderitem_set = [{
@@ -431,9 +439,19 @@ class ShopihqOrderService(object):
             grouped_return_info = {}
 
             grouped_return_info = {
-                roi['orderItemId']: [info for info in roi.get("returnInfo", []) if info.get("returnStatus") != 2]
-                for roi in order_data['items']
-                if roi["status"] in acceptable_refund_statuses and any(info.get("returnStatus") != 2 for info in roi.get("returnInfo", []))
+                order_item['orderItemId']: [
+                    info for info in sorted(
+                        order_item.get("returnInfo", []), key=lambda x: x.get("some_sorting_criteria")
+                    )
+                    if info.get("returnStatus") not in [2, 635]
+                ]
+                for order_item in order_items
+                if (
+                        order_item["status"] in acceptable_refund_statuses
+                        and any(
+                    info.get("returnStatus") not in [2, 635] for info in order_item.get("returnInfo", [])
+                )
+                )
             }
 
             for order_item_id, return_info_list in grouped_return_info.items():
@@ -511,8 +529,8 @@ class ShopihqOrderService(object):
             refund_status = ""
             easy_return_code = ""
         elif last_item.get("returnStatus") == 635:
-            refund_status = "Completed"
-            easy_return_code = last_item.get("shipmentCode", "")
+            refund_status = ""
+            easy_return_code = ""
         else:
             refund_status = "Waiting"
             easy_return_code = last_item.get("shipmentCode", "")
