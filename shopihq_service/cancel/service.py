@@ -68,7 +68,7 @@ class ShopihqCancelService(object):
             "orderId": order_id,
             "orderItemList": [],
             "returnDestinationNodeId": None,
-            "shipmentProvider": "9",
+            "shipmentProvider": "20",
             "deliveryAddressforRejectedReturn": None
         }
 
