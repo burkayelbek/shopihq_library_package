@@ -113,7 +113,7 @@ class ShopihqOrderService(object):
                 "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
                 "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
-                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", "")),
+                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", 0)),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
                     "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -151,7 +151,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": int(res.get("billingAddress", {}).get("id", "")),
+                    "pk": int(res.get("billingAddress", {}).get("id", 0)),
                     "email": res.get("billingAddress", {}).get("email", ""),
                     "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -272,7 +272,7 @@ class ShopihqOrderService(object):
                 "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
                 "is_refundable": res.get("items", [])[0].get("isReturnable", False),
                 "shipping_address": {
-                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", "")),
+                    "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", 0)),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
                     "phone_number": res["items"][0].get("deliveryAddress", {}).get("phone", ""),
                     "first_name": first_name,
@@ -310,7 +310,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "billing_address": {
-                    "pk": int(res.get("billingAddress", {}).get("id", "")),
+                    "pk": int(res.get("billingAddress", {}).get("id", 0)),
                     "email": res.get("billingAddress", {}).get("email", ""),
                     "phone_number": res.get("billingAddress", {}).get("phone", ""),
                     "first_name": first_name,
