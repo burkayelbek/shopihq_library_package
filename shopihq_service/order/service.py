@@ -190,7 +190,7 @@ class ShopihqOrderService(object):
                 },
                 "shipping_company": {},
                 "tracking_url": res["items"][0].get("shipment", {}).get("trackingUrl", None),
-                "created_date": res["createdOn"],
+                "created_date": res["createdOn"]+'Z',
                 "number": res["orderId"],
                 "amount": str(res["totalPrice"]),
                 "discount_amount": "",
@@ -349,7 +349,7 @@ class ShopihqOrderService(object):
                 },
                 "shipping_company": {},
                 "tracking_url": res["items"][0].get("shipment", {}).get("trackingUrl", None),
-                "created_date": res["createdOn"],
+                "created_date": res["createdOn"]+'Z',
                 "number": res["orderId"],
                 "amount": str(res["totalPrice"]),
                 "discount_amount": "",
@@ -468,6 +468,10 @@ class ShopihqOrderService(object):
                     },
                     "easy_return": {
                         "code": easy_return_code,
+                        "shipping_company": {
+                            "value": "yurtici",
+                            "label": "Yurtiçi Kargo"
+                        }
                     },
                     "description": "",
                     "reason": "",
