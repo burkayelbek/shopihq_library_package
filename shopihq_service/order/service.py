@@ -78,7 +78,7 @@ class ShopihqOrderService(object):
 
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
-            f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=10')
+            f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=4')
         try:
             response = requests.get(url=path, params=request.query_params, headers=self.headers)
 
@@ -92,6 +92,16 @@ class ShopihqOrderService(object):
         if not parsed_json:
             response.status_code = response.status_code
             response.json = lambda: {}
+            return response
+
+        order_id_search = request.query_params.get("search", None)
+        if order_id_search:
+            response = self.order_search_by_id(request=request, order_id=order_id_search)
+            data = json.loads(response.content.decode())
+            results = {"count": 1, "next": None, "previous": None, "results": [data]}
+            response = requests.Response()
+            response.status_code = 200
+            response._content = json.dumps(results).encode()
             return response
 
         for res in parsed_json:
@@ -246,7 +256,21 @@ class ShopihqOrderService(object):
             return handle_request_exception(e)
 
         response_json = json.loads(response.content.decode())
+        count = response_json.get("data", {}).get("totalCount")
         parsed_json = response_json.get("data", {}).get("results", [])
+
+        if count == 0 and parsed_json == []:
+            if order_id and order_id[0].isalpha():
+                order_id = order_id[1:]
+                try:
+                    path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
+                    response = requests.get(url=path, params=request.query_params, headers=self.headers)
+                    response_json = json.loads(response.content.decode())
+                    parsed_json = response_json.get("data", {}).get("results", [])
+                    response.raise_for_status()
+
+                except requests.exceptions.RequestException as e:
+                    return handle_request_exception(e)
 
         if not parsed_json:
             response.status_code = response.status_code
@@ -255,6 +279,7 @@ class ShopihqOrderService(object):
 
         orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
         parent_status = self._get_parent_status(orderitem=orderitem_set)
+        is_cancellable, is_refundable, is_cancelled = self._general_refund_cancel_statuses(order_item=orderitem_set)
         first_name, last_name = check_full_name_compatibility(
             full_name=parsed_json[0].get("billingAddress", {}).get("fullName", ""))
 
@@ -267,10 +292,9 @@ class ShopihqOrderService(object):
                     "label": "TL",
                 },
                 "orderitem_set": orderitem_set,
-                "is_cancelled": True if res.get("items", [])[0].get("status") == 50 or res.get("items", [])[0].get(
-                    "isRefunded") == True else False,
-                "is_cancellable": res.get("items", [])[0].get("isCancelable", False),
-                "is_refundable": res.get("items", [])[0].get("isReturnable", False),
+                "is_cancelled": is_cancelled,
+                "is_cancellable": is_cancellable,
+                "is_refundable": is_refundable,
                 "shipping_address": {
                     "pk": int(res["items"][0].get("deliveryAddress", {}).get("id", 0)),
                     "email": res["items"][0].get("deliveryAddress", {}).get("email", ""),
@@ -540,3 +564,10 @@ class ShopihqOrderService(object):
             refund_status = "Waiting"
             easy_return_code = last_item.get("shipmentCode", "")
         return refund_status, easy_return_code
+
+    def _general_refund_cancel_statuses(self, order_item):
+        is_cancellable = any(orderitem.get("is_cancellable", False) for orderitem in order_item)
+        is_refundable = any(orderitem.get("is_refundable", False) for orderitem in order_item)
+        is_cancelled = all(orderitem.get("is_cancelled", False) for orderitem in order_item)
+
+        return is_cancellable, is_refundable, is_cancelled

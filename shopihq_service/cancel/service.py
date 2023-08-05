@@ -33,8 +33,6 @@ class ShopihqCancelService(object):
         :param request:
         :return:
         """
-        #order_item_list = request["orderItems"]
-        #orderitem_id_list = [str(orderitem.get("orderItemId", "")) for orderitem in order_item_list]
 
         payload = {
             "orderId": request.get("order_id"),
@@ -126,26 +124,24 @@ class ShopihqCancelService(object):
                 return response
             return {}
 
-    def bulk_cancel_order(self, request):
-        #ToDo: Should test on real data.
+    def bulk_cancel_order(self, request, order_id=None):
         request_data = request.data.get("cancel_order_items")
-        order_id = request_data[0].get("order_id", "")
-        order_items = request_data
+        order_number = order_id
 
         cancel_payload = {
-            "orderId": request.data.get("order_id"),
+            "orderId": order_number,
             "orderItems": []
         }
 
         return_payload = {
-            "orderId": request.data.get("order_id"),
+            "orderId": order_number,
             "orderItemList": [],
             "returnDestinationNodeId": None,
             "shipmentProvider": "20",
             "deliveryAddressforRejectedReturn": None
         }
 
-        for orderitem in order_items:
+        for orderitem in request_data:
             cancellation_type = orderitem.get("cancellation_type")
             if cancellation_type == "cancel":
                 order_item_payload = {
@@ -167,8 +163,8 @@ class ShopihqCancelService(object):
             response_json = json.loads(response.content.decode())
             data = response_json.get("data", {}).get("cancelableModel", [])
             is_cancellable = all(cancellable_status.get("isCancelable", False) for cancellable_status in data
-                                 for orderitem in order_items
-                                 if cancellable_status.get("orderItemId", "") == orderitem.get("orderItemId", ""))
+                                 for orderitem in request_data
+                                 if cancellable_status.get("orderItemId", "") == orderitem.get("order_item", ""))
 
             if is_cancellable:
                 path = get_url_with_endpoint('/Order/cancelOrder')
@@ -177,15 +173,8 @@ class ShopihqCancelService(object):
             return {}
 
         if return_payload["orderItemList"]:
-            response = self.is_draft_returnable(request=request_data)
-            response_json = json.loads(response.content.decode())
-            data = response_json.get("data")
-            is_returnable = all(draft_status.get("isDraftReturnable", False) for draft_status in data
-                                for orderitem in order_items
-                                if draft_status.get("orderItemExternalId") == orderitem.get("orderItemId", ""))
-
-            if is_returnable:
-                path = get_url_with_endpoint('/Return/createDraftReturnShipment')
-                response = requests.post(url=path, headers=self.headers, json=return_payload)
-                return response
+            path = get_url_with_endpoint('/Return/createDraftReturnShipment')
+            response = requests.post(url=path, headers=self.headers, json=return_payload)
+            return response
+        else:
             return {}
