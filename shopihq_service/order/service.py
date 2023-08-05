@@ -99,8 +99,11 @@ class ShopihqOrderService(object):
             page_number = request.query_params.get("page", 1)
             response = self.order_search_by_id(request=request, order_id=order_id_search, page_number=page_number)
             response_json = json.loads(response.content.decode())
-            data = response_json.get("data", {}).get("results", [])
-            results = {"count": 1, "next": None, "previous": None, "results": data}
+            if response_json and response_json.get("data").get("results") == []:
+                response_json = []
+            else:
+                response_json = [response_json]
+            results = {"count": 1, "next": None, "previous": None, "results": response_json}
             response = requests.Response()
             response.status_code = 200
             response._content = json.dumps(results).encode()
