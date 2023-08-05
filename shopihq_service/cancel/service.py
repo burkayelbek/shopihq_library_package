@@ -3,6 +3,7 @@ import json
 from shopihq_service.helpers.utils import get_url_with_endpoint
 from shopihq_service.helpers.utils import BasicAuthUtils
 from shopihq_service.helpers.custom_exceptions import handle_request_exception
+from shopihq_service.order.service import ShopihqOrderService
 
 
 class ShopihqCancelService(object):
@@ -27,16 +28,18 @@ class ShopihqCancelService(object):
             err = handle_request_exception(e)
             return err
 
-    def is_draft_returnable(self, request):
+    def is_draft_returnable(self, request, extra_data=None):
         """
         Method: POST
         :param request:
         :return:
         """
+        if isinstance(request, list):
+            order_item_id_list = [str(item.get("order_item")) for item in request]
 
         payload = {
-            "orderId": request.get("order_id"),
-            "orderItemIds": [str(request.get("order_item"))]
+            "orderId": request.get("order_id") if extra_data is None else extra_data,
+            "orderItemIds":  order_item_id_list if isinstance(request, list) else [str(request.get("order_item"))]
         }
         path = get_url_with_endpoint('Return/isDraftReturnable')
         try:
@@ -64,6 +67,7 @@ class ShopihqCancelService(object):
           order_id: "xxxxx"
         }
         """
+
         order_id = request.data.get("order_id", "")
         order_item_id = request.data.get("order_item", "")
 
@@ -84,14 +88,14 @@ class ShopihqCancelService(object):
         cancellation_type = request.data.get("cancellation_type")
         if cancellation_type == "cancel":
             order_item_payload = {
-                "orderItemId": request.data.get("order_item", ""),
+                "orderItemId": str(request.data.get("order_item", "")),
                 "customerReason": int(request.data.get("reason")),
                 "customerStatement": request.data.get("description") if int(request.data.get("reason")) == -1 else ""
             }
             cancel_payload["orderItems"].append(order_item_payload)
         else:
             order_item_payload = {
-                "orderItemExternalId": request.data.get("order_item", ""),
+                "orderItemExternalId": str(request.data.get("order_item", "")),
                 "customerReason": int(request.data.get("reason")),
                 "customerStatement": request.data.get("description") if int(request.data.get("reason")) == -1 else ""
             }
@@ -105,7 +109,7 @@ class ShopihqCancelService(object):
                                  if cancellable_status.get("orderItemId", "") == order_item_id)
 
             if is_cancellable:
-                path = get_url_with_endpoint('/Order/cancelOrder')
+                path = get_url_with_endpoint('Order/cancelOrder')
                 response = requests.post(url=path, headers=self.headers, json=cancel_payload)
                 return response
             return {}
@@ -119,14 +123,17 @@ class ShopihqCancelService(object):
                                 if draft_status.get("orderItemExternalId") == order_item_id)
 
             if is_returnable:
-                path = get_url_with_endpoint('/Return/createDraftReturnShipment')
+                path = get_url_with_endpoint('Return/createDraftReturnShipment')
                 response = requests.post(url=path, headers=self.headers, json=return_payload)
                 return response
             return {}
 
-    def bulk_cancel_order(self, request, order_id=None):
+    def bulk_cancel_order(self, request):
         request_data = request.data.get("cancel_order_items")
-        order_number = order_id
+        user_id = request.user.id
+        order_item_id = request_data[0].get("order_item")
+        order_item_id_list = [str(item.get("order_item")) for item in request_data]
+        order_number = self._get_order_by_orderitem_id(request=request, order_item_id=order_item_id, user_id=user_id)
 
         cancel_payload = {
             "orderId": order_number,
@@ -145,36 +152,63 @@ class ShopihqCancelService(object):
             cancellation_type = orderitem.get("cancellation_type")
             if cancellation_type == "cancel":
                 order_item_payload = {
-                    "orderItemId": orderitem.get("order_item", ""),
+                    "orderItemId": str(orderitem.get("order_item", "")),
                     "customerReason": int(orderitem["reason"]),
                     "customerStatement": orderitem["description"] if int(orderitem["reason"]) == -1 else ""
                 }
                 cancel_payload["orderItems"].append(order_item_payload)
             else:
                 order_item_payload = {
-                    "orderItemExternalId": orderitem.get("order_item", ""),
+                    "orderItemExternalId": str(orderitem.get("order_item", "")),
                     "customerReason": int(orderitem["reason"]),
                     "customerStatement": orderitem["description"] if int(orderitem["reason"]) == -1 else ""
                 }
                 return_payload["orderItemList"].append(order_item_payload)
 
         if cancel_payload["orderItems"]:
-            response = self.is_cancellable(order_number=order_id)
+            response = self.is_cancellable(order_number=order_number)
             response_json = json.loads(response.content.decode())
             data = response_json.get("data", {}).get("cancelableModel", [])
             is_cancellable = all(cancellable_status.get("isCancelable", False) for cancellable_status in data
-                                 for orderitem in request_data
-                                 if cancellable_status.get("orderItemId", "") == orderitem.get("order_item", ""))
+                                 for orderitem in order_item_id_list
+                                 if cancellable_status.get("orderItemId", "") == orderitem)
 
             if is_cancellable:
-                path = get_url_with_endpoint('/Order/cancelOrder')
+                path = get_url_with_endpoint('Order/cancelOrder')
                 response = requests.post(url=path, headers=self.headers, json=cancel_payload)
                 return response
             return {}
 
         if return_payload["orderItemList"]:
-            path = get_url_with_endpoint('/Return/createDraftReturnShipment')
-            response = requests.post(url=path, headers=self.headers, json=return_payload)
-            return response
-        else:
+            response = self.is_draft_returnable(request=request_data, extra_data=order_number)
+            response_json = json.loads(response.content.decode())
+            data = response_json.get("data")
+            is_returnable = all(draft_status.get("isDraftReturnable", False) for draft_status in data
+                                for orderitem in order_item_id_list
+                                if draft_status.get("orderItemExternalId") == orderitem)
+
+            if is_returnable:
+                path = get_url_with_endpoint('Return/createDraftReturnShipment')
+                response = requests.post(url=path, headers=self.headers, json=return_payload)
+                return response
             return {}
+
+    def _get_order_by_orderitem_id(self, request, user_id, order_item_id):
+        path = get_url_with_endpoint(
+            f'Order/search?OrderItemId={order_item_id}&customerId={user_id}')
+        try:
+            response = requests.get(url=path, params=request.query_params, headers=self.headers)
+            response.raise_for_status()
+
+        except requests.exceptions.RequestException as e:
+            return handle_request_exception(e)
+
+        response_json = json.loads(response.content.decode())
+        order_id = response_json.get("data", {}).get("results", [])[0].get("orderId","")
+
+        if not order_id:
+            response.status_code = response.status_code
+            response.json = lambda: {}
+            return response
+
+        return order_id
