@@ -96,9 +96,11 @@ class ShopihqOrderService(object):
 
         order_id_search = request.query_params.get("search", None)
         if order_id_search:
-            response = self.order_search_by_id(request=request, order_id=order_id_search)
-            data = json.loads(response.content.decode())
-            results = {"count": 1, "next": None, "previous": None, "results": [data]}
+            page_number = request.query_params.get("page", 1)
+            response = self.order_search_by_id(request=request, order_id=order_id_search, page_number=page_number)
+            response_json = json.loads(response.content.decode())
+            data = response_json.get("data", {}).get("results", [])
+            results = {"count": 1, "next": None, "previous": None, "results": data}
             response = requests.Response()
             response.status_code = 200
             response._content = json.dumps(results).encode()
@@ -240,14 +242,15 @@ class ShopihqOrderService(object):
         response._content = json.dumps(results).encode()
         return response
 
-    def order_search_by_id(self, request, order_id):
+    def order_search_by_id(self, request, order_id, **kwargs):
         """
         :param order_id:
         :param request:
         :return:
         """
         response_data = {}
-        path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
+        page_number = kwargs.get("page_number", 1)
+        path = get_url_with_endpoint(f'Order/search?orderIds={order_id}&pageNumber={page_number}')
         try:
             response = requests.get(url=path, params=request.query_params, headers=self.headers)
             response.raise_for_status()
@@ -542,27 +545,31 @@ class ShopihqOrderService(object):
             return {'value': '500', 'label': status_labels['500']}
         elif status_counts['600'] == num_items:
             return {'value': '600', 'label': status_labels['600']}
+        elif status_counts['600'] > status_counts["100"]:
+            return {'value': '600', 'label': status_labels['600']}
+        elif status_counts['100'] > status_counts["600"]:
+            return {'value': '100', 'label': status_labels['100']}
+        elif status_counts['100'] == status_counts["600"]:
+            return {'value': '100', 'label': status_labels['100']}
         else:
             return None
 
     def _get_refund_status(self, return_info):
         sorted_data = sorted(return_info, key=lambda x: x['returnStatus'])
         last_item = sorted_data[-1]
+        first_item = sorted_data[0]
 
         if not sorted_data:
             refund_status = ""
             easy_return_code = ""
             return refund_status, easy_return_code
 
-        if last_item.get("returnStatus") == 2:
-            refund_status = ""
-            easy_return_code = ""
-        elif last_item.get("returnStatus") == 635:
-            refund_status = ""
-            easy_return_code = ""
-        else:
+        if any(item['returnStatus'] == 0 for item in sorted_data) and last_item['returnStatus'] not in (2, 635):
             refund_status = "Waiting"
-            easy_return_code = last_item.get("shipmentCode", "")
+            easy_return_code = first_item.get("shipmentCode", "")
+        else:
+            refund_status = ""
+            easy_return_code = ""
         return refund_status, easy_return_code
 
     def _general_refund_cancel_statuses(self, order_item):
