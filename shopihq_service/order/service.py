@@ -99,9 +99,7 @@ class ShopihqOrderService(object):
             page_number = request.query_params.get("page", 1)
             response = self.order_search_by_id(request=request, order_id=order_id_search, page_number=page_number)
             response_json = json.loads(response.content.decode())
-            if response_json and response_json.get("data").get("results") == []:
-                response_json = []
-            else:
+            if response_json != []:
                 response_json = [response_json]
             results = {"count": 1, "next": None, "previous": None, "results": response_json}
             response = requests.Response()
@@ -264,6 +262,13 @@ class ShopihqOrderService(object):
         response_json = json.loads(response.content.decode())
         count = response_json.get("data", {}).get("totalCount")
         parsed_json = response_json.get("data", {}).get("results", [])
+
+        # Mobile Search Control
+        if int(page_number) > 1 and parsed_json == []:
+            response = requests.Response()
+            response.status_code = 200
+            response._content = json.dumps(parsed_json).encode()
+            return response
 
         if count == 0 and parsed_json == []:
             if order_id and order_id[0].isalpha():
