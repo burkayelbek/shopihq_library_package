@@ -32,7 +32,7 @@ def get_order_status_mapping(order_data):
     refunded = any(return_info.get("returnStatus") == 635 for return_info in order_data.get("returnInfo", []))
     state_mapping = {
         210: {"value": "450", "label": "Hazırlanıyor"},
-        240: {"value": "500", "label": "Kargolandı"},
+        240: {"value": "450", "label": "Hazırlanıyor"},
         330: {"value": "450", "label": "Hazırlanıyor"},
         410: {"value": "450", "label": "Hazırlanıyor"},
         425: {"value": "500", "label": "Kargolandı"},
