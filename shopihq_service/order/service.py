@@ -284,7 +284,7 @@ class ShopihqOrderService(object):
                     return handle_request_exception(e)
 
         if not parsed_json:
-            response.status_code = response.status_code
+            response.status_code = 404
             response.json = lambda: {}
             return response
 
