@@ -521,9 +521,10 @@ class ShopihqOrderService(object):
         return orderitem_set
 
     def _get_parent_status(self, orderitem):
-        status_counts = {'100': 0, '450': 0, '500': 0, '550': 0, '600': 0}
+        status_counts = {'100': 0, '450': 0, '500': 0, '550': 0, '600': 0, "400": 0}
         status_labels = {
             '100': 'İptal Edildi',
+            '400': 'Onaylandı',
             '450': 'Hazırlanıyor',
             '500': 'Kargolandı',
             '550': 'Teslim Edildi',
@@ -558,6 +559,8 @@ class ShopihqOrderService(object):
         elif status_counts['100'] > status_counts["600"]:
             return {'value': '100', 'label': status_labels['100']}
         elif status_counts['100'] == status_counts["600"]:
+            return {'value': '100', 'label': status_labels['100']}
+        elif status_counts['400'] == num_items:
             return {'value': '100', 'label': status_labels['100']}
         else:
             return None
