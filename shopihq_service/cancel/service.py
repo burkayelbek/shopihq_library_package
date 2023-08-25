@@ -181,7 +181,7 @@ class ShopihqCancelService(object):
                                  if cancellable_status.get("orderItemId", "") == orderitem)
 
             if is_cancellable:
-                path = get_url_with_endpoint('/Order/cancelOrder')
+                path = get_url_with_endpoint('Order/cancelOrder')
                 response = requests.post(url=path, headers=self.headers, json=cancel_payload)
                 return response
             return {}
@@ -195,7 +195,7 @@ class ShopihqCancelService(object):
                                 if draft_status.get("orderItemExternalId") == orderitem)
 
             if is_returnable:
-                path = get_url_with_endpoint('/Return/createDraftReturnShipment')
+                path = get_url_with_endpoint('Return/createDraftReturnShipment')
                 response = requests.post(url=path, headers=self.headers, json=return_payload)
                 return response
             return {}
