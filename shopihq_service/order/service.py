@@ -558,10 +558,10 @@ class ShopihqOrderService(object):
             return {'value': '600', 'label': status_labels['600']}
         elif status_counts['100'] > status_counts["600"]:
             return {'value': '100', 'label': status_labels['100']}
-        elif status_counts['100'] == status_counts["600"]:
-            return {'value': '100', 'label': status_labels['100']}
         elif status_counts['400'] == num_items:
             return {'value': '400', 'label': status_labels['400']}
+        elif status_counts['100'] == status_counts["600"] and status_counts['100'] > 0:
+            return {'value': '100', 'label': status_labels['100']}
         else:
             return None
 
