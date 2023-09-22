@@ -68,7 +68,7 @@ class ShopihqOrderService(object):
         response._content = json.dumps(results).encode()
         return response
 
-    def order_search(self, request, user_id):
+    def order_search(self, request, user_id, **kwargs):
         """
         :param user_id:
         :param request:
@@ -76,9 +76,10 @@ class ShopihqOrderService(object):
         """
         data = []
 
+        page_size = kwargs.get("page_size", 4) # Default to 4 if not specified
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
-            f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize=4')
+            f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize={page_size}')
         try:
             response = requests.get(url=path, params=request.query_params, headers=self.headers)
 
