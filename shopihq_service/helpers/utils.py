@@ -39,7 +39,8 @@ def get_order_status_mapping(order_data):
         510: {"value": "450", "label": "Hazırlanıyor"},
         540: {"value": "550", "label": "Teslim Edildi"},
         50: {"value": "100", "label": "İptal Edildi"},
-        10: {"value": "400", "label": "Onaylandı"}
+        10: {"value": "400", "label": "Onaylandı"},
+        140: {"value": "400", "label": "Onaylandı"}
     }
     if refunded:
         return {"value": "600", "label": "İade edildi"}
