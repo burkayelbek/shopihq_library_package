@@ -98,8 +98,14 @@ class ShopihqOrderService(object):
         order_id_search = request.query_params.get("search", None)
         if order_id_search:
             page_number = request.query_params.get("page", 1)
-            response = self.order_search_by_id(request=request, order_id=order_id_search, page_number=page_number)
+            response = self.order_search_by_id(request=request, user_id=user_id, order_id=order_id_search, page_number=page_number)
             response_json = json.loads(response.content.decode())
+            if response.status_code == 404:
+                results = {"count": 0, "next": None, "previous": None, "results": []}
+                response = requests.Response()
+                response.status_code = 200
+                response._content = json.dumps(results).encode()
+                return response
             if response_json != []:
                 response_json = [response_json]
             results = {"count": 1, "next": None, "previous": None, "results": response_json}
@@ -244,7 +250,7 @@ class ShopihqOrderService(object):
         response._content = json.dumps(results).encode()
         return response
 
-    def order_search_by_id(self, request, order_id, **kwargs):
+    def order_search_by_id(self, request, user_id, order_id, **kwargs):
         """
         :param order_id:
         :param request:
@@ -252,7 +258,7 @@ class ShopihqOrderService(object):
         """
         response_data = {}
         page_number = kwargs.get("page_number", 1)
-        path = get_url_with_endpoint(f'Order/search?orderIds={order_id}&pageNumber={page_number}')
+        path = get_url_with_endpoint(f'Order/search?customerId={user_id}&orderIds={order_id}&pageNumber={page_number}')
         try:
             response = requests.get(url=path, params=request.query_params, headers=self.headers)
             response.raise_for_status()
@@ -541,27 +547,20 @@ class ShopihqOrderService(object):
                 status_counts[status_value] += 1
 
         num_items = len(orderitem)
-        num_remaining = num_items - status_counts['100'] - status_counts['550'] - status_counts['600']
+        excluded_statuses = ['100', '400', '600']
+        filtered_statuses = {status_code: count for status_code, count in status_counts.items() 
+                                if status_code not in excluded_statuses and count > 0}
+        min_status = min(filtered_statuses.keys(), default=None)
 
-        if status_counts['450'] >= num_items or status_counts['450'] >= 1:
-            return {'value': '450', 'label': status_labels['450']}
+        if min_status:
+            return {'value': min_status, 'label': status_labels[min_status]}
         elif status_counts['100'] == num_items:
             return {'value': '100', 'label': status_labels['100']}
-        elif status_counts['550'] == num_items or (
-                status_counts['100'] + status_counts['550'] == num_items - num_remaining + status_counts['600'] and
-                status_counts['450'] == num_remaining):
-            return {'value': '550', 'label': status_labels['550']}
-        elif status_counts['500'] == num_items:
-            return {'value': '500', 'label': status_labels['500']}
         elif status_counts['600'] == num_items:
             return {'value': '600', 'label': status_labels['600']}
-        elif status_counts['600'] > status_counts["100"]:
-            return {'value': '600', 'label': status_labels['600']}
-        elif status_counts['100'] > status_counts["600"]:
-            return {'value': '100', 'label': status_labels['100']}
         elif status_counts['400'] == num_items:
             return {'value': '400', 'label': status_labels['400']}
-        elif status_counts['100'] == status_counts["600"] and status_counts['100'] > 0:
+        elif status_counts['100'] == status_counts['600'] and sum(count for status_code, count in status_counts.items() if status_code not in ['100', '600']) == 0:
             return {'value': '100', 'label': status_labels['100']}
         else:
             return None
