@@ -138,8 +138,13 @@ class ShopihqCancelService(object):
         :param request:
         :return:
         """
-        order_id = request.data.get("order_id") or request.data.get("cancel_order_items", []).get("order_id", "")
-        order_items = request.data.get("order_items") or request.data.get("cancel_order_items", []).get("order_items", [])
+        order_id = request.data.get("order_id")
+        if not order_id:
+            order_id = request.data.get("cancel_order_items", []).get("order_id", "")
+        
+        order_items = request.data.get("order_items")
+        if not order_items:
+             order_items = request.data.get("cancel_order_items", []).get("order_items", [])
         order_item_id_list = [str(item.get("order_item")) for item in order_items]
 
         cancel_payload = {
