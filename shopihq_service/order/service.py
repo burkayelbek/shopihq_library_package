@@ -218,7 +218,7 @@ class ShopihqOrderService(object):
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
                 "amount_without_discount": res.get("subTotalPrice", 0),
-                "installment_count": res["payments"][0].get("installmentCount", None),
+                "installment_count": res["payments"][0].get("installmentCount", None) if res["payments"] else [],
                 "payment_option": {
                     "name": "Kredi Kartı"
                 }
@@ -399,7 +399,7 @@ class ShopihqOrderService(object):
                 "shipping_option_slug": None,
                 "payment_option_slug": None,
                 "amount_without_discount": res.get("subTotalPrice", 0),
-                "installment_count": res["payments"][0].get("installmentCount", None),
+                "installment_count": res["payments"][0].get("installmentCount", None) if res["payments"] else [],
                 "payment_option": {
                     "name": "Kredi Kartı"
                 }
