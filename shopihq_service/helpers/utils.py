@@ -35,6 +35,7 @@ def get_order_status_mapping(order_data):
         240: {"value": "450", "label": "Hazırlanıyor"},
         330: {"value": "450", "label": "Hazırlanıyor"},
         410: {"value": "450", "label": "Hazırlanıyor"},
+        415: {"value": "500", "label": "Kargolandı"},
         425: {"value": "500", "label": "Kargolandı"},
         510: {"value": "450", "label": "Hazırlanıyor"},
         540: {"value": "550", "label": "Teslim Edildi"},
