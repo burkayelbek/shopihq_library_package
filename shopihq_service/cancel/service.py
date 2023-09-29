@@ -38,11 +38,20 @@ class ShopihqCancelService(object):
         else:
             try:
                 order_item_id_list = [str(item.get("order_item")) for item in request.get("order_items", [])]
+                if not order_item_id_list:
+                    request_data = request.get("cancel_order_items", {})
+                    order_item_id_list = [str(item.get("order_item")) for item in request_data.get("order_items", [])]
             except:
                 order_item_id_list = [str(request.get("order_item"))]
+        if extra_data is None:
+            order_id = request.get("order_id")
+            if not order_id:
+                order_id = request_data.get("order_id")
+        else:
+            order_id = extra_data
 
         payload = {
-            "orderId": request.get("order_id") if extra_data is None else extra_data,
+            "orderId": order_id,
             "orderItemIds": order_item_id_list
         }
         path = get_url_with_endpoint('Return/isDraftReturnable')
