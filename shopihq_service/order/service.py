@@ -281,7 +281,7 @@ class ShopihqOrderService(object):
             if order_id and order_id[0].isalpha():
                 order_id = order_id[1:]
                 try:
-                    path = get_url_with_endpoint(f'Order/search?orderIds={order_id}')
+                    path = get_url_with_endpoint(f'Order/search?customerId={user_id}&orderIds={order_id}')
                     response = requests.get(url=path, params=request.query_params, headers=self.headers)
                     response_json = json.loads(response.content.decode())
                     parsed_json = response_json.get("data", {}).get("results", [])
