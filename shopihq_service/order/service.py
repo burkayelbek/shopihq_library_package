@@ -471,7 +471,8 @@ class ShopihqOrderService(object):
                 "name": None,
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
-            "tracking_url": orderitem.get("shipment", {}).get("trackingUrl", None),
+            "tracking_url": None if orderitem.get("returnInfo") else orderitem.get("shipment", {}).get(
+                "trackingUrl", None),
             "tracking_number": orderitem.get("shipment", {}).get("trackingNumber", None),
             "price": str(orderitem["price"]),
             "tax_rate": str(orderitem["taxRate"])
