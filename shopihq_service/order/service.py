@@ -532,7 +532,7 @@ class ShopihqOrderService(object):
 
     def _get_parent_status(self, orderitem, **kwargs):
         lang_code = kwargs.get("lang_code")
-        if lang_code not in ["tr-tr", "tr", "tr-TR", "en"]:
+        if lang_code in ["tr-tr", "tr", "tr-TR"]:
             lang_code = "tr"
         else:
             lang_code = "en"

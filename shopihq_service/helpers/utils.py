@@ -29,7 +29,7 @@ def get_order_status_mapping(order_data, **kwargs):
     if not isinstance(order_data, dict):
         order_data = {order_data}
     order_status = order_data["status"]
-    if lang_code not in ["tr-tr", "tr", "tr-TR"]:
+    if lang_code in ["tr-tr", "tr", "tr-TR"]:
         lang_code = "tr"
     else:
         lang_code = "en"
