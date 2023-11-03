@@ -75,7 +75,7 @@ class ShopihqOrderService(object):
         :return:
         """
         data = []
-        lang_code = kwargs.get("lang_code")
+        lang_code = kwargs.get("lang_code", "tr")
         page_size = kwargs.get("page_size", 4) # Default to 4 if not specified
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
@@ -257,7 +257,7 @@ class ShopihqOrderService(object):
         :return:
         """
         response_data = {}
-        lang_code = kwargs.get("lang_code")
+        lang_code = kwargs.get("lang_code", "tr")
         page_number = kwargs.get("page_number", 1)
         path = get_url_with_endpoint(f'Order/search?customerId={user_id}&orderIds={order_id}&pageNumber={page_number}')
         try:
