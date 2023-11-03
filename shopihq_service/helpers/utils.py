@@ -54,7 +54,6 @@ def get_order_status_mapping(order_data, **kwargs):
         return {"value": "600", "label": "Refunded" if lang_code == "en" else "İade Edildi"}
     if order_status not in state_mapping:
         return {}
-    #return state_mapping[order_status]
     return {"value": state_mapping[order_status]["value"], "label": state_mapping[order_status]["label"][lang_code]} if order_status in state_mapping else {}
 
 

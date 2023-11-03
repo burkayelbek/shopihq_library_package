@@ -257,11 +257,15 @@ class ShopihqOrderService(object):
         :return:
         """
         response_data = {}
+        query_params = request.query_params.copy()
+        if query_params.get("request") in ["cancel", "refund"]:
+            query_params.pop('request', None)
+
         lang_code = kwargs.get("lang_code", "tr")
         page_number = kwargs.get("page_number", 1)
         path = get_url_with_endpoint(f'Order/search?customerId={user_id}&orderIds={order_id}&pageNumber={page_number}')
         try:
-            response = requests.get(url=path, params=request.query_params, headers=self.headers)
+            response = requests.get(url=path, params=query_params, headers=self.headers)
             response.raise_for_status()
 
         except requests.exceptions.RequestException as e:
@@ -573,7 +577,12 @@ class ShopihqOrderService(object):
                 count for status_code, count in status_counts.items() if status_code not in ['100', '600']) == 0:
             return {'value': '100', 'label': status_labels['100'][lang_code]}
         else:
-            return None
+            if status_counts['100'] > status_counts['600']:
+                return {'value': '100', 'label': status_labels['100'][lang_code]}
+            elif status_counts['600'] > status_counts['100']:
+                return {'value': '600', 'label': status_labels['600'][lang_code]}
+            else:
+                return None
 
     def _get_refund_status(self, return_info):
         sorted_data = sorted(return_info, key=lambda x: x['returnStatus'])
