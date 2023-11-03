@@ -40,6 +40,7 @@ def get_order_status_mapping(order_data, **kwargs):
         240: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
         330: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
         410: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        242: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
         415: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
         425: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
         550: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
