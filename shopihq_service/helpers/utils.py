@@ -24,32 +24,38 @@ def get_url_with_endpoint(endpoint):
     return f"{shopi_url}{endpoint}"
 
 
-def get_order_status_mapping(order_data):
+def get_order_status_mapping(order_data, **kwargs):
+    lang_code = kwargs.get("lang_code")
     if not isinstance(order_data, dict):
         order_data = {order_data}
     order_status = order_data["status"]
+    if lang_code in ["tr-tr", "tr", "tr-TR"]:
+        lang_code = "tr"
+    else:
+        lang_code = "en"
 
     refunded = any(return_info.get("returnStatus") == 635 for return_info in order_data.get("returnInfo", []))
     state_mapping = {
-        210: {"value": "450", "label": "Hazırlanıyor"},
-        240: {"value": "450", "label": "Hazırlanıyor"},
-        330: {"value": "450", "label": "Hazırlanıyor"},
-        410: {"value": "450", "label": "Hazırlanıyor"},
-        242: {"value": "450", "label": "Hazırlanıyor"},
-        415: {"value": "500", "label": "Kargolandı"},
-        425: {"value": "500", "label": "Kargolandı"},
-        550: {"value": "500", "label": "Kargolandı"},
-        510: {"value": "450", "label": "Hazırlanıyor"},
-        540: {"value": "550", "label": "Teslim Edildi"},
-        50: {"value": "100", "label": "İptal Edildi"},
-        10: {"value": "400", "label": "Onaylandı"},
-        140: {"value": "400", "label": "Onaylandı"}
+        210: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        240: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        330: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        410: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        242: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        415: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
+        425: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
+        550: {"value": "500", "label": {"en": "Shipped", "tr": "Kargolandı"}},
+        510: {"value": "450", "label": {"en": "Preparing", "tr": "Hazırlanıyor"}},
+        540: {"value": "550", "label": {"en": "Delivered", "tr": "Teslim Edildi"}},
+        50: {"value": "100", "label": {"en": "Cancelled", "tr": "İptal Edildi"}},
+        10: {"value": "400", "label": {"en": "Approved", "tr": "Onaylandı"}},
+        140: {"value": "400", "label": {"en": "Approved", "tr": "Onaylandı"}}
     }
     if refunded:
-        return {"value": "600", "label": "İade edildi"}
+        return {"value": "600", "label": "Refunded" if lang_code == "en" else "İade Edildi"}
     if order_status not in state_mapping:
         return {}
-    return state_mapping[order_status]
+    return {"value": state_mapping[order_status]["value"], "label": state_mapping[order_status]["label"][lang_code]} if order_status in state_mapping else {}
+
 
 
 def check_full_name_compatibility(full_name):

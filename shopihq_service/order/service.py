@@ -75,7 +75,7 @@ class ShopihqOrderService(object):
         :return:
         """
         data = []
-
+        lang_code = kwargs.get("lang_code", "tr")
         page_size = kwargs.get("page_size", 4) # Default to 4 if not specified
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
@@ -115,8 +115,8 @@ class ShopihqOrderService(object):
             return response
 
         for res in parsed_json:
-            orderitem_set = self._fill_orderitem_set(order_data=res),
-            parent_status = self._get_parent_status(orderitem=orderitem_set[0])
+            orderitem_set = self._fill_orderitem_set(order_data=res, lang_code=lang_code),
+            parent_status = self._get_parent_status(orderitem=orderitem_set[0], lang_code=lang_code)
             first_name, last_name = check_full_name_compatibility(
                 full_name=res.get("billingAddress", {}).get("fullName", ""))
 
@@ -257,10 +257,15 @@ class ShopihqOrderService(object):
         :return:
         """
         response_data = {}
+        query_params = request.query_params.copy()
+        if query_params.get("request") in ["cancel", "refund"]:
+            query_params.pop('request', None)
+
+        lang_code = kwargs.get("lang_code", "tr")
         page_number = kwargs.get("page_number", 1)
         path = get_url_with_endpoint(f'Order/search?customerId={user_id}&orderIds={order_id}&pageNumber={page_number}')
         try:
-            response = requests.get(url=path, params=request.query_params, headers=self.headers)
+            response = requests.get(url=path, params=query_params, headers=self.headers)
             response.raise_for_status()
 
         except requests.exceptions.RequestException as e:
@@ -295,8 +300,8 @@ class ShopihqOrderService(object):
             response.json = lambda: {}
             return response
 
-        orderitem_set = self._fill_orderitem_set(order_data=parsed_json)
-        parent_status = self._get_parent_status(orderitem=orderitem_set)
+        orderitem_set = self._fill_orderitem_set(order_data=parsed_json, lang_code=lang_code)
+        parent_status = self._get_parent_status(orderitem=orderitem_set, lang_code=lang_code)
         is_cancellable, is_refundable, is_cancelled = self._general_refund_cancel_statuses(order_item=orderitem_set)
         first_name, last_name = check_full_name_compatibility(
             full_name=parsed_json[0].get("billingAddress", {}).get("fullName", ""))
@@ -410,7 +415,8 @@ class ShopihqOrderService(object):
         response._content = json.dumps(response_data).encode()
         return response
 
-    def _fill_orderitem_set(self, order_data):
+    def _fill_orderitem_set(self, order_data, **kwargs):
+        lang_code = kwargs.get("lang_code")
         if not isinstance(order_data, list):
             order_data = [order_data]
         acceptable_refund_statuses = [425, 540]
@@ -433,7 +439,7 @@ class ShopihqOrderService(object):
         # cancellation_requests = {}
         orderitem_set = [{
             "id": int(orderitem.get("orderItemId")),
-            "status": get_order_status_mapping(orderitem),
+            "status": get_order_status_mapping(order_data=orderitem, lang_code=lang_code),
             "price_currency": {
                 "value": "try",
                 "label": "TL"
@@ -528,15 +534,21 @@ class ShopihqOrderService(object):
 
         return orderitem_set
 
-    def _get_parent_status(self, orderitem):
+    def _get_parent_status(self, orderitem, **kwargs):
+        lang_code = kwargs.get("lang_code")
+        if lang_code in ["tr-tr", "tr", "tr-TR"]:
+            lang_code = "tr"
+        else:
+            lang_code = "en"
+
         status_counts = {'100': 0, '450': 0, '500': 0, '550': 0, '600': 0, "400": 0}
         status_labels = {
-            '100': 'İptal Edildi',
-            '400': 'Onaylandı',
-            '450': 'Hazırlanıyor',
-            '500': 'Kargolandı',
-            '550': 'Teslim Edildi',
-            '600': 'İade Edildi'
+            '100': {'tr': 'İptal Edildi', 'en': 'Cancelled'},
+            '400': {'tr': 'Onaylandı', 'en': 'Approved'},
+            '450': {'tr': 'Hazırlanıyor', 'en': 'Preparing'},
+            '500': {'tr': 'Kargolandı', 'en': 'Shipped'},
+            '550': {'tr': 'Teslim Edildi', 'en': 'Delivered'},
+            '600': {'tr': 'İade Edildi', 'en': 'Refunded'}
         }
 
         if not isinstance(orderitem, list):
@@ -549,22 +561,28 @@ class ShopihqOrderService(object):
 
         num_items = len(orderitem)
         excluded_statuses = ['100', '400', '600']
-        filtered_statuses = {status_code: count for status_code, count in status_counts.items() 
+        filtered_statuses = {status_code: count for status_code, count in status_counts.items()
                                 if status_code not in excluded_statuses and count > 0}
         min_status = min(filtered_statuses.keys(), default=None)
 
         if min_status:
-            return {'value': min_status, 'label': status_labels[min_status]}
+            return {'value': min_status, 'label': status_labels[min_status][lang_code]}
         elif status_counts['100'] == num_items:
-            return {'value': '100', 'label': status_labels['100']}
+            return {'value': '100', 'label': status_labels['100'][lang_code]}
         elif status_counts['600'] == num_items:
-            return {'value': '600', 'label': status_labels['600']}
+            return {'value': '600', 'label': status_labels['600'][lang_code]}
         elif status_counts['400'] == num_items:
-            return {'value': '400', 'label': status_labels['400']}
-        elif status_counts['100'] == status_counts['600'] and sum(count for status_code, count in status_counts.items() if status_code not in ['100', '600']) == 0:
-            return {'value': '100', 'label': status_labels['100']}
+            return {'value': '400', 'label': status_labels['400'][lang_code]}
+        elif status_counts['100'] == status_counts['600'] and sum(
+                count for status_code, count in status_counts.items() if status_code not in ['100', '600']) == 0:
+            return {'value': '100', 'label': status_labels['100'][lang_code]}
         else:
-            return None
+            if status_counts['100'] > status_counts['600']:
+                return {'value': '100', 'label': status_labels['100'][lang_code]}
+            elif status_counts['600'] > status_counts['100']:
+                return {'value': '600', 'label': status_labels['600'][lang_code]}
+            else:
+                return None
 
     def _get_refund_status(self, return_info):
         sorted_data = sorted(return_info, key=lambda x: x['returnStatus'])
