@@ -76,7 +76,7 @@ class ShopihqOrderService(object):
         """
         data = []
         lang_code = kwargs.get("lang_code", "tr")
-        page_size = kwargs.get("page_size", 4) # Default to 4 if not specified
+        page_size = kwargs.get("page_size", 4)  # Default to 4 if not specified
         page_number = int(request.query_params.get('page', 1))  # Default to 1 if not specified
         path = get_url_with_endpoint(
             f'Order/search?customerId={user_id}&SortDesc=true&pageNumber={page_number}&pageSize={page_size}')
@@ -98,7 +98,8 @@ class ShopihqOrderService(object):
         order_id_search = request.query_params.get("search", None)
         if order_id_search:
             page_number = request.query_params.get("page", 1)
-            response = self.order_search_by_id(request=request, user_id=user_id, order_id=order_id_search, page_number=page_number)
+            response = self.order_search_by_id(request=request, user_id=user_id, order_id=order_id_search,
+                                               page_number=page_number)
             response_json = json.loads(response.content.decode())
             if response.status_code == 404:
                 results = {"count": 0, "next": None, "previous": None, "results": []}
@@ -209,8 +210,9 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": res["items"][0].get("shipment", {}).get("trackingUrl", None),
-                "created_date": res["createdOn"]+'Z',
+                "tracking_url": None if res["items"][0].get("shipment", {}).get("provider", None) == "FUUDY"
+                                    else res["items"][0].get("shipment", {}).get("trackingUrl", None),
+                "created_date": res["createdOn"] + 'Z',
                 "number": res["orderId"],
                 "amount": str(res["totalPrice"]),
                 "discount_amount": "",
@@ -395,8 +397,9 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": res["items"][0].get("shipment", {}).get("trackingUrl", None),
-                "created_date": res["createdOn"]+'Z',
+                "tracking_url": None if res["items"][0].get("shipment", {}).get("provider", None) == "FUUDY"
+                                        else res["items"][0].get("shipment", {}).get("trackingUrl", None),
+                "created_date": res["createdOn"] + 'Z',
                 "number": res["orderId"],
                 "amount": str(res["totalPrice"]),
                 "discount_amount": "",
@@ -477,8 +480,9 @@ class ShopihqOrderService(object):
                 "name": None,
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
-            "tracking_url": None if orderitem.get("returnInfo") else orderitem.get("shipment", {}).get(
-                "trackingUrl", None),
+            "tracking_url": None if (orderitem.get("shipment", {}).get("provider") == "FUUDY"
+                                     or orderitem.get("returnInfo"))
+                                else orderitem.get("shipment", {}).get("trackingUrl", None),
             "tracking_number": orderitem.get("shipment", {}).get("trackingNumber", None),
             "price": str(orderitem["price"]),
             "tax_rate": str(orderitem["taxRate"])
@@ -562,7 +566,7 @@ class ShopihqOrderService(object):
         num_items = len(orderitem)
         excluded_statuses = ['100', '400', '600']
         filtered_statuses = {status_code: count for status_code, count in status_counts.items()
-                                if status_code not in excluded_statuses and count > 0}
+                             if status_code not in excluded_statuses and count > 0}
         min_status = min(filtered_statuses.keys(), default=None)
 
         if min_status:
