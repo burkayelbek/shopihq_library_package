@@ -210,7 +210,7 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": None if res["items"][0].get("shipment", {}).get("provider", None) == "FUUDY"
+                "tracking_url": None if self._set_tracking_url(res["items"][0])
                                     else res["items"][0].get("shipment", {}).get("trackingUrl", None),
                 "created_date": res["createdOn"] + 'Z',
                 "number": res["orderId"],
@@ -239,7 +239,7 @@ class ShopihqOrderService(object):
             prev_url = None
 
         # Each page has 10 order to show and calculate manually.
-        if count > (page_number * 10):
+        if count > (page_number * page_size):
             query_params["format"] = "json"
             query_params['page'] = page_number + 1
             url_parts[4] = urlencode(query_params, doseq=True)
@@ -397,8 +397,8 @@ class ShopihqOrderService(object):
                     "primary": False
                 },
                 "shipping_company": {},
-                "tracking_url": None if res["items"][0].get("shipment", {}).get("provider", None) == "FUUDY"
-                                        else res["items"][0].get("shipment", {}).get("trackingUrl", None),
+                "tracking_url": None if self._set_tracking_url(res["items"][0])
+                                    else res["items"][0].get("shipment", {}).get("trackingUrl", None),
                 "created_date": res["createdOn"] + 'Z',
                 "number": res["orderId"],
                 "amount": str(res["totalPrice"]),
@@ -480,8 +480,7 @@ class ShopihqOrderService(object):
                 "name": None,
                 "label": orderitem.get("shipment", {}).get("provider", None)
             },
-            "tracking_url": None if (orderitem.get("shipment", {}).get("provider") == "FUUDY"
-                                     or orderitem.get("returnInfo"))
+            "tracking_url": None if self._set_tracking_url(orderitem)
                                 else orderitem.get("shipment", {}).get("trackingUrl", None),
             "tracking_number": orderitem.get("shipment", {}).get("trackingNumber", None),
             "price": str(orderitem["price"]),
@@ -537,6 +536,17 @@ class ShopihqOrderService(object):
                     orderitem_set_item.setdefault("cancellationrequest_set", []).append(cancellation_requests)
 
         return orderitem_set
+
+    def _set_tracking_url(self, orderitem):
+        # Perform the checks as needed and return True if tracking_url should be None
+        if orderitem.get("shipment", {}).get("provider") == "FUUDY":
+            return True
+        if orderitem.get("returnInfo"):
+            return True
+        if not orderitem.get("shipment", {}).get("trackingUrl", "").strip():
+            return True
+
+        return False
 
     def _get_parent_status(self, orderitem, **kwargs):
         lang_code = kwargs.get("lang_code")
