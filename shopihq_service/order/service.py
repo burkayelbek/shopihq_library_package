@@ -452,7 +452,8 @@ class ShopihqOrderService(object):
                 "sku": orderitem.get("productSku", ""),
                 "base_code": orderitem.get("productBarcode", ""),
                 "name": orderitem.get("productName", ""),
-                "image": orderitem.get("productUrl", None),
+                "image": orderitem.get("productUrl", None) if orderitem.get("isSpecialDesign", False) is False
+                            else orderitem.get("customValues", {}).get("image1", None),
                 "absolute_url": "#",
                 "attributes": {
                     "integration_sap_COLOR": orderitem.get("productColor", ""),
